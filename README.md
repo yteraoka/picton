@@ -62,6 +62,51 @@ xcrun simctl launch "iPhone 17 Pro" com.yteraoka.Picton
 
 > **Note:** シミュレータ名は `xcrun simctl list devices available` で確認できます。
 
+### 方法3: 実機 (iPhone) にインストール
+
+#### 1. Apple ID の設定
+
+Xcode で署名用のアカウントを設定します。
+
+1. **Xcode** → **Settings** (`Cmd + ,`) → **Accounts** タブ
+2. 左下の **+** → **Apple ID** を選択してログイン
+
+#### 2. Signing の設定
+
+1. Xcode で `Picton.xcodeproj` を開く
+2. 左のナビゲータで **Picton** プロジェクト（青いアイコン）を選択
+3. **Signing & Capabilities** タブを開く
+4. **Automatically manage signing** にチェック
+5. **Team** のドロップダウンから自分の Apple ID（`Personal Team`）を選択
+6. **Bundle Identifier** が重複エラーになる場合は `com.yteraoka.Picton` を一意の値に変更
+
+#### 3. iPhone を接続してビルド
+
+1. iPhone を USB ケーブルで Mac に接続
+2. iPhone 側で **「このコンピュータを信頼」** をタップ
+3. Xcode 上部のデバイス選択で接続した **iPhone** を選択
+4. **▶ (Run)** を押す（`Cmd + R`）
+
+#### 4. 初回のみ: デバイスの信頼設定
+
+無料の Apple ID で署名した場合、初回起動時にエラーが出ます。iPhone 側で以下の操作を行ってください。
+
+1. **設定** → **一般** → **VPN とデバイス管理**
+2. デベロッパ App の下に表示される自分の Apple ID をタップ
+3. **「信頼」** をタップ
+
+その後 Xcode から再度 Run するか、ホーム画面の Picton アイコンをタップして起動できます。
+
+#### 無料 Apple ID と Apple Developer Program の違い
+
+| 項目 | 無料 Apple ID | Apple Developer Program (年額 ¥15,800) |
+|---|---|---|
+| 実機インストール | 最大3台 | 100台 |
+| アプリの有効期限 | **7日間**（再インストール要） | 1年間 |
+| App Store 配布 | 不可 | 可能 |
+
+無料の Apple ID でも開発・テスト目的での実機インストールは問題なくできますが、7日ごとに Xcode から再インストールが必要です。
+
 ## 使い方
 
 1. **カードをタップ** → 画面上部の文エリアに追加される
