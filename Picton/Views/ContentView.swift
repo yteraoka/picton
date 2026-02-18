@@ -28,6 +28,7 @@ struct ContentView: View {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         sentenceVM.append(card)
                     }
+                    ttsService.speak(card.kanaText)
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 },
                 onCardLongPress: { card in
