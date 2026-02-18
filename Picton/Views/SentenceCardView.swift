@@ -34,7 +34,11 @@ struct SentenceCardView: View {
 
     @ViewBuilder
     private var cardImage: some View {
-        if card.isPreset, let symbolName = card.presetImageName {
+        if card.isPreset, let imageName = card.presetImageName, UIImage(named: imageName) != nil {
+            Image(imageName)
+                .resizable()
+                .scaledToFill()
+        } else if card.isPreset, let symbolName = card.presetImageName {
             Image(systemName: symbolName)
                 .font(.title2)
                 .foregroundStyle(categoryColor(for: card.category))
