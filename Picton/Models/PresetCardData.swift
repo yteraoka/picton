@@ -54,7 +54,7 @@ enum PresetCardData {
         PresetCardDefinition(displayName: "たのしい", kanaText: "たのしい", category: "気持ち", sfSymbol: "star.fill"),
     ]
 
-    // MARK: - 食べ物 (7)
+    // MARK: - 食べ物 (15)
     static let foods: [PresetCardDefinition] = [
         PresetCardDefinition(displayName: "ごはん", kanaText: "ごはん", category: "食べ物", sfSymbol: "takeoutbag.and.cup.and.straw.fill"),
         PresetCardDefinition(displayName: "パン", kanaText: "ぱん", category: "食べ物", sfSymbol: "birthday.cake.fill"),
@@ -63,6 +63,14 @@ enum PresetCardData {
         PresetCardDefinition(displayName: "ジュース", kanaText: "ジュース", category: "食べ物", sfSymbol: "mug.fill"),
         PresetCardDefinition(displayName: "おやつ", kanaText: "おやつ", category: "食べ物", sfSymbol: "gift.fill"),
         PresetCardDefinition(displayName: "くだもの", kanaText: "くだもの", category: "食べ物", sfSymbol: "leaf.fill"),
+        PresetCardDefinition(displayName: "焼きそば", kanaText: "やきそば", category: "食べ物", sfSymbol: "flame.fill"),
+        PresetCardDefinition(displayName: "餃子", kanaText: "ぎょうざ", category: "食べ物", sfSymbol: "moon.fill"),
+        PresetCardDefinition(displayName: "ピザ", kanaText: "ぴざ", category: "食べ物", sfSymbol: "triangle.fill"),
+        PresetCardDefinition(displayName: "ラーメン", kanaText: "ラーメン", category: "食べ物", sfSymbol: "bowl.fill"),
+        PresetCardDefinition(displayName: "りんご", kanaText: "りんご", category: "食べ物", sfSymbol: "apple.logo"),
+        PresetCardDefinition(displayName: "うどん", kanaText: "うどん", category: "食べ物", sfSymbol: "bowl.fill"),
+        PresetCardDefinition(displayName: "納豆", kanaText: "なっとう", category: "食べ物", sfSymbol: "circle.grid.3x3.fill"),
+        PresetCardDefinition(displayName: "柿ピー", kanaText: "かきぴー", category: "食べ物", sfSymbol: "drop.fill"),
     ]
 
     // MARK: - 人 (6)
