@@ -8,7 +8,7 @@ struct PresetCardDefinition {
 }
 
 enum PresetCardData {
-    static let all: [PresetCardDefinition] = places + actions + feelings + foods + people + daily
+    static let all: [PresetCardDefinition] = places + actions + foods + people + daily + feelings
 
     // MARK: - 場所 (16)
     static let places: [PresetCardDefinition] = [
