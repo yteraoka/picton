@@ -13,6 +13,7 @@ struct ContentView: View {
     @State private var editingCard: PictureCard?
     @State private var showDataManagement = false
     @State private var isReorderMode = false
+    @State private var slideFromTrailing = true
 
     var body: some View {
         NavigationStack {
@@ -52,6 +53,12 @@ struct ContentView: View {
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
             )
+            .id(libraryVM.selectedCategory)
+            .transition(.asymmetric(
+                insertion: .move(edge: slideFromTrailing ? .trailing : .leading),
+                removal: .move(edge: slideFromTrailing ? .leading : .trailing)
+            ))
+            .clipped()
             .simultaneousGesture(
                 DragGesture(minimumDistance: 50, coordinateSpace: .local)
                     .onEnded { value in
@@ -60,11 +67,13 @@ struct ContentView: View {
                         let categories = Constants.allCategories
                         guard let currentIndex = categories.firstIndex(of: libraryVM.selectedCategory) else { return }
                         if value.translation.width < -50, currentIndex < categories.count - 1 {
-                            withAnimation(.easeInOut(duration: 0.15)) {
+                            slideFromTrailing = true
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 libraryVM.selectedCategory = categories[currentIndex + 1]
                             }
                         } else if value.translation.width > 50, currentIndex > 0 {
-                            withAnimation(.easeInOut(duration: 0.15)) {
+                            slideFromTrailing = false
+                            withAnimation(.easeInOut(duration: 0.25)) {
                                 libraryVM.selectedCategory = categories[currentIndex - 1]
                             }
                         }
@@ -110,7 +119,12 @@ struct ContentView: View {
             HStack(spacing: 8) {
                 ForEach(Constants.allCategories, id: \.self) { category in
                     Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
+                        let categories = Constants.allCategories
+                        if let newIndex = categories.firstIndex(of: category),
+                           let currentIndex = categories.firstIndex(of: libraryVM.selectedCategory) {
+                            slideFromTrailing = newIndex > currentIndex
+                        }
+                        withAnimation(.easeInOut(duration: 0.25)) {
                             libraryVM.selectedCategory = category
                         }
                     } label: {
