@@ -6,6 +6,8 @@ struct CardGridView: View {
     let onCardTap: (PictureCard) -> Void
     let onCardLongPress: (PictureCard) -> Void
     let onAddTap: () -> Void
+    var isReorderMode: Bool = false
+    var onReorder: ((PictureCard, PictureCard) -> Void)?
 
     private let columns = [
         GridItem(.adaptive(minimum: Constants.gridItemMinSize), spacing: 10)
@@ -15,17 +17,41 @@ struct CardGridView: View {
         ScrollView {
             LazyVGrid(columns: columns, spacing: 10) {
                 ForEach(cards, id: \.id) { card in
-                    CardGridItemView(
-                        card: card,
-                        onTap: { onCardTap(card) },
-                        onLongPress: { onCardLongPress(card) }
-                    )
+                    cardItem(for: card)
                 }
 
-                addButton
+                if !isReorderMode {
+                    addButton
+                }
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 8)
+        }
+    }
+
+    @ViewBuilder
+    private func cardItem(for card: PictureCard) -> some View {
+        let item = CardGridItemView(
+            card: card,
+            onTap: { onCardTap(card) },
+            onLongPress: { onCardLongPress(card) },
+            isReorderMode: isReorderMode
+        )
+
+        if isReorderMode {
+            item
+                .draggable(card.id.uuidString)
+                .dropDestination(for: String.self) { items, _ in
+                    guard let draggedIDString = items.first,
+                          let draggedID = UUID(uuidString: draggedIDString),
+                          draggedID != card.id,
+                          let draggedCard = cards.first(where: { $0.id == draggedID })
+                    else { return false }
+                    onReorder?(draggedCard, card)
+                    return true
+                }
+        } else {
+            item
         }
     }
 

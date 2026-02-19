@@ -12,6 +12,7 @@ struct ContentView: View {
     @State private var showAddCard = false
     @State private var editingCard: PictureCard?
     @State private var showDataManagement = false
+    @State private var isReorderMode = false
 
     var body: some View {
         NavigationStack {
@@ -27,6 +28,7 @@ struct ContentView: View {
             CardGridView(
                 cards: libraryVM.filteredCards(from: allCards),
                 onCardTap: { card in
+                    guard !isReorderMode else { return }
                     withAnimation(.easeInOut(duration: 0.2)) {
                         sentenceVM.append(card)
                     }
@@ -34,11 +36,20 @@ struct ContentView: View {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 },
                 onCardLongPress: { card in
+                    guard !isReorderMode else { return }
                     editingCard = card
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 },
                 onAddTap: {
                     showAddCard = true
+                },
+                isReorderMode: isReorderMode,
+                onReorder: { draggedCard, targetCard in
+                    let tempOrder = draggedCard.sortOrder
+                    draggedCard.sortOrder = targetCard.sortOrder
+                    targetCard.sortOrder = tempOrder
+                    try? modelContext.save()
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
             )
             .simultaneousGesture(
@@ -61,6 +72,17 @@ struct ContentView: View {
             )
         }
         .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        isReorderMode.toggle()
+                    }
+                } label: {
+                    Image(systemName: "arrow.up.arrow.down")
+                        .foregroundStyle(isReorderMode ? .blue : .primary)
+                }
+                .accessibilityLabel(isReorderMode ? "並べ替えモード終了" : "並べ替えモード")
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
                     showDataManagement = true

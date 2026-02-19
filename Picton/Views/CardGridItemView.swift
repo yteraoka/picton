@@ -4,6 +4,7 @@ struct CardGridItemView: View {
     let card: PictureCard
     let onTap: () -> Void
     let onLongPress: () -> Void
+    var isReorderMode: Bool = false
 
     var body: some View {
         Button {
@@ -31,7 +32,12 @@ struct CardGridItemView: View {
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(categoryColor(for: card.category).opacity(0.3), lineWidth: 1)
+                    .stroke(
+                        isReorderMode
+                            ? categoryColor(for: card.category)
+                            : categoryColor(for: card.category).opacity(0.3),
+                        lineWidth: isReorderMode ? 2 : 1
+                    )
             )
         }
         .buttonStyle(.plain)
@@ -41,8 +47,15 @@ struct CardGridItemView: View {
                     onLongPress()
                 }
         )
+        .rotationEffect(isReorderMode ? .degrees(0.8) : .zero)
+        .animation(
+            isReorderMode
+                ? .easeInOut(duration: 0.15).repeatForever(autoreverses: true)
+                : .default,
+            value: isReorderMode
+        )
         .accessibilityLabel(card.displayName)
-        .accessibilityHint("タップして文に追加、長押しで編集")
+        .accessibilityHint(isReorderMode ? "ドラッグして並べ替え" : "タップして文に追加、長押しで編集")
     }
 
     @ViewBuilder
