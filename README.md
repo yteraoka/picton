@@ -4,11 +4,12 @@
 
 ## 特徴
 
-- 45枚のプリセット絵カード（場所・動作・気持ち・食べ物・人・生活）
+- 45枚のプリセット絵カード（場所・動作・食べ物・人・生活・気持ち）
 - カードをタップして文を組み立て、日本語音声で読み上げ
-- ドラッグ&ドロップでカードの並び替え
 - カメラや写真ライブラリからオリジナルカードを作成
-- カテゴリフィルタで素早くカードを探せる
+- カテゴリフィルタで素早くカードを探せる（左右スワイプでカテゴリ切り替え）
+- 並べ替えモードでカードの表示順をドラッグ&ドロップで変更
+- カスタムカードのエクスポート/インポート（ZIP形式）
 - 完全オフライン動作（サーバー不要）
 - サイレントモードでも音声再生
 
@@ -114,9 +115,11 @@ Xcode で署名用のアカウントを設定します。
 3. **文エリアのカードをタップ** → そのカードを削除
 4. **文エリアのカードをドラッグ** → 順序を並び替え
 5. **🗑 ボタン** → 文をすべてクリア
-6. **カテゴリタブ** → 表示するカードをフィルタリング
+6. **カテゴリタブ** → 表示するカードをフィルタリング（左右スワイプでも切り替え可）
 7. **＋ ボタン** → カメラや写真からオリジナルカードを作成
 8. **カードを長押し** → カードの編集・削除
+9. **↑↓ ボタン（並べ替えモード）** → カードをドラッグ&ドロップで並べ替え
+10. **⚙ ボタン** → カスタムカードのエクスポート/インポート
 
 ## プロジェクト構成
 
@@ -127,20 +130,22 @@ Picton/
 │   ├── PictureCard.swift           # SwiftData モデル
 │   └── PresetCardData.swift        # プリセット定義一覧 (45枚)
 ├── Views/
-│   ├── ContentView.swift           # ルートビュー
+│   ├── ContentView.swift           # ルートビュー（並べ替えモード管理含む）
 │   ├── SentenceAreaView.swift      # 文組み立てエリア
 │   ├── SentenceCardView.swift      # 文内の個別カード
-│   ├── CardGridView.swift          # カードグリッド
+│   ├── CardGridView.swift          # カードグリッド（ドラッグ&ドロップ対応）
 │   ├── CardGridItemView.swift      # グリッド内の個別カード
 │   ├── AddCardView.swift           # カスタムカード追加シート
 │   ├── EditCardView.swift          # カスタムカード編集シート
+│   ├── DataManagementView.swift    # エクスポート/インポート画面
 │   └── PlaybackButtonView.swift    # 再生ボタン
 ├── ViewModels/
 │   ├── SentenceViewModel.swift     # 文の組み立てロジック
 │   └── CardLibraryViewModel.swift  # カード取得・フィルタ
 ├── Services/
 │   ├── TTSService.swift            # AVSpeechSynthesizer ラッパー
-│   └── ImageStorageService.swift   # カスタム画像の保存・読込・削除
+│   ├── ImageStorageService.swift   # カスタム画像の保存・読込・削除
+│   └── CardExportImportService.swift # ZIP形式エクスポート/インポート
 ├── Utilities/
 │   ├── Constants.swift             # 定数定義
 │   └── PresetImageBootstrapper.swift # 初回起動時プリセット投入
