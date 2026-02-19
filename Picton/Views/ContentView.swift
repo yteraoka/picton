@@ -41,9 +41,11 @@ struct ContentView: View {
                     showAddCard = true
                 }
             )
-            .gesture(
+            .simultaneousGesture(
                 DragGesture(minimumDistance: 50, coordinateSpace: .local)
                     .onEnded { value in
+                        // 水平方向の移動が縦方向より大きい場合のみカテゴリ切り替え
+                        guard abs(value.translation.width) > abs(value.translation.height) else { return }
                         let categories = Constants.allCategories
                         guard let currentIndex = categories.firstIndex(of: libraryVM.selectedCategory) else { return }
                         if value.translation.width < -50, currentIndex < categories.count - 1 {
