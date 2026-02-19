@@ -14,6 +14,7 @@ struct EditCardView: View {
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var showCamera = false
     @State private var showDeleteConfirmation = false
+    @State private var isHidden: Bool
 
     let categories = Constants.allCategories.filter { $0 != "すべて" }
 
@@ -22,6 +23,7 @@ struct EditCardView: View {
         _displayName = State(initialValue: card.displayName)
         _kanaText = State(initialValue: card.kanaText)
         _selectedCategory = State(initialValue: card.category)
+        _isHidden = State(initialValue: card.isHidden)
         if !card.isPreset {
             _selectedImage = State(initialValue: ImageStorageService.load(id: card.id))
         }
@@ -79,6 +81,10 @@ struct EditCardView: View {
                     }
                 }
 
+                Section("表示設定") {
+                    Toggle("このカードを非表示にする", isOn: $isHidden)
+                }
+
                 if !card.isPreset {
                     Section {
                         Button("このカードを削除", role: .destructive) {
@@ -123,6 +129,7 @@ struct EditCardView: View {
         card.displayName = displayName
         card.kanaText = kanaText
         card.category = selectedCategory
+        card.isHidden = isHidden
 
         if !card.isPreset, let image = selectedImage {
             _ = try? ImageStorageService.save(image: image, id: card.id)

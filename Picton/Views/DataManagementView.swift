@@ -39,6 +39,17 @@ struct DataManagementView: View {
                 } footer: {
                     Text("エクスポートしたZIPファイルを選択してカードを追加します")
                 }
+
+                Section {
+                    NavigationLink {
+                        HiddenCardsListView()
+                    } label: {
+                        Label("非表示カード", systemImage: "eye.slash")
+                    }
+                } footer: {
+                    let count = allCards.filter { $0.isHidden }.count
+                    Text("非表示のカード: \(count) 枚")
+                }
             }
             .navigationTitle("データ管理")
             .navigationBarTitleDisplayMode(.inline)

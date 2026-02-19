@@ -11,6 +11,7 @@ final class PictureCard: Identifiable {
     var presetImageName: String?
     var sortOrder: Int
     var createdAt: Date
+    var isHidden: Bool = false
 
     init(
         id: UUID = UUID(),
@@ -20,7 +21,8 @@ final class PictureCard: Identifiable {
         isPreset: Bool = false,
         presetImageName: String? = nil,
         sortOrder: Int = 0,
-        createdAt: Date = Date()
+        createdAt: Date = Date(),
+        isHidden: Bool = false
     ) {
         self.id = id
         self.displayName = displayName
@@ -30,5 +32,6 @@ final class PictureCard: Identifiable {
         self.presetImageName = presetImageName
         self.sortOrder = sortOrder
         self.createdAt = createdAt
+        self.isHidden = isHidden
     }
 }
