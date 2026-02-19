@@ -39,6 +39,22 @@ struct ContentView: View {
                     showAddCard = true
                 }
             )
+            .gesture(
+                DragGesture(minimumDistance: 50, coordinateSpace: .local)
+                    .onEnded { value in
+                        let categories = Constants.allCategories
+                        guard let currentIndex = categories.firstIndex(of: libraryVM.selectedCategory) else { return }
+                        if value.translation.width < -50, currentIndex < categories.count - 1 {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                libraryVM.selectedCategory = categories[currentIndex + 1]
+                            }
+                        } else if value.translation.width > 50, currentIndex > 0 {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                libraryVM.selectedCategory = categories[currentIndex - 1]
+                            }
+                        }
+                    }
+            )
         }
         .sheet(isPresented: $showAddCard) {
             AddCardView()
