@@ -10,7 +10,7 @@ struct PresetCardDefinition {
 enum PresetCardData {
     static let all: [PresetCardDefinition] = places + actions + foods + people + daily + feelings
 
-    // MARK: - 場所 (16)
+    // MARK: - 場所 (8)
     static let places: [PresetCardDefinition] = [
         PresetCardDefinition(displayName: "公園", kanaText: "こうえん", category: "場所", sfSymbol: "tree.fill"),
         PresetCardDefinition(displayName: "病院", kanaText: "びょういん", category: "場所", sfSymbol: "cross.case.fill"),
@@ -20,14 +20,6 @@ enum PresetCardData {
         PresetCardDefinition(displayName: "美容院", kanaText: "びよういん", category: "場所", sfSymbol: "scissors"),
         PresetCardDefinition(displayName: "トイレ", kanaText: "トイレ", category: "場所", sfSymbol: "toilet.fill"),
         PresetCardDefinition(displayName: "プール", kanaText: "プール", category: "場所", sfSymbol: "figure.pool.swim"),
-        PresetCardDefinition(displayName: "渋谷", kanaText: "しぶや", category: "場所", sfSymbol: "preset_shibuya"),
-        PresetCardDefinition(displayName: "北千住", kanaText: "きたせんじゅ", category: "場所", sfSymbol: "preset_kitasenju"),
-        PresetCardDefinition(displayName: "三越前", kanaText: "みつこしまえ", category: "場所", sfSymbol: "preset_mitsukoshimae"),
-        PresetCardDefinition(displayName: "マクドナルド", kanaText: "マクドナルド", category: "場所", sfSymbol: "preset_mcdonalds"),
-        PresetCardDefinition(displayName: "サイゼリヤ", kanaText: "サイゼリヤ", category: "場所", sfSymbol: "preset_saizeriya"),
-        PresetCardDefinition(displayName: "ガスト", kanaText: "ガスト", category: "場所", sfSymbol: "preset_gusto"),
-        PresetCardDefinition(displayName: "餃子の王将", kanaText: "ぎょうざのおうしょう", category: "場所", sfSymbol: "preset_ohsho"),
-        PresetCardDefinition(displayName: "あざみ野", kanaText: "あざみの", category: "場所", sfSymbol: "preset_azamino"),
     ]
 
     // MARK: - 動作 (8)
@@ -54,7 +46,7 @@ enum PresetCardData {
         PresetCardDefinition(displayName: "たのしい", kanaText: "たのしい", category: "気持ち", sfSymbol: "star.fill"),
     ]
 
-    // MARK: - 食べ物 (16)
+    // MARK: - 食べ物 (7)
     static let foods: [PresetCardDefinition] = [
         PresetCardDefinition(displayName: "ごはん", kanaText: "ごはん", category: "食べ物", sfSymbol: "takeoutbag.and.cup.and.straw.fill"),
         PresetCardDefinition(displayName: "パン", kanaText: "ぱん", category: "食べ物", sfSymbol: "birthday.cake.fill"),
@@ -63,15 +55,6 @@ enum PresetCardData {
         PresetCardDefinition(displayName: "ジュース", kanaText: "ジュース", category: "食べ物", sfSymbol: "mug.fill"),
         PresetCardDefinition(displayName: "おやつ", kanaText: "おやつ", category: "食べ物", sfSymbol: "gift.fill"),
         PresetCardDefinition(displayName: "くだもの", kanaText: "くだもの", category: "食べ物", sfSymbol: "leaf.fill"),
-        PresetCardDefinition(displayName: "焼きそば", kanaText: "やきそば", category: "食べ物", sfSymbol: "preset_yakisoba"),
-        PresetCardDefinition(displayName: "餃子", kanaText: "ぎょうざ", category: "食べ物", sfSymbol: "preset_gyoza"),
-        PresetCardDefinition(displayName: "ピザ", kanaText: "ぴざ", category: "食べ物", sfSymbol: "preset_pizza"),
-        PresetCardDefinition(displayName: "ラーメン", kanaText: "ラーメン", category: "食べ物", sfSymbol: "preset_ramen"),
-        PresetCardDefinition(displayName: "りんご", kanaText: "りんご", category: "食べ物", sfSymbol: "preset_ringo"),
-        PresetCardDefinition(displayName: "うどん", kanaText: "うどん", category: "食べ物", sfSymbol: "preset_udon"),
-        PresetCardDefinition(displayName: "納豆", kanaText: "なっとう", category: "食べ物", sfSymbol: "preset_natto"),
-        PresetCardDefinition(displayName: "柿ピー", kanaText: "かきぴー", category: "食べ物", sfSymbol: "preset_kakipea"),
-        PresetCardDefinition(displayName: "コーラ", kanaText: "コーラ", category: "食べ物", sfSymbol: "preset_cola"),
     ]
 
     // MARK: - 人 (6)

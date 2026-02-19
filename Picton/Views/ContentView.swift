@@ -11,8 +11,10 @@ struct ContentView: View {
 
     @State private var showAddCard = false
     @State private var editingCard: PictureCard?
+    @State private var showDataManagement = false
 
     var body: some View {
+        NavigationStack {
         VStack(spacing: 0) {
             SentenceAreaView(sentenceVM: sentenceVM, ttsService: ttsService)
 
@@ -56,11 +58,26 @@ struct ContentView: View {
                     }
             )
         }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    showDataManagement = true
+                } label: {
+                    Image(systemName: "gearshape")
+                }
+                .accessibilityLabel("データ管理")
+            }
+        }
+        .navigationBarTitleDisplayMode(.inline)
+        }
         .sheet(isPresented: $showAddCard) {
             AddCardView()
         }
         .sheet(item: $editingCard) { card in
             EditCardView(card: card)
+        }
+        .sheet(isPresented: $showDataManagement) {
+            DataManagementView()
         }
     }
 
