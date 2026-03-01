@@ -1,6 +1,6 @@
 # Picton - 絵カードコミュニケーションアプリ
 
-<img src="Picton/Assets.xcassets/AppIcon.appiconset/picton.png" width="300">
+<img src="docs/images/picton-icon.png" width="300">
 
 発語障害のある子どもが、絵カードを並べて文を組み立て、音声読み上げで意思を伝えるための iOS アプリです。
 
