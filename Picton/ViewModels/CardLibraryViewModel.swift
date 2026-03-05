@@ -4,15 +4,11 @@ import SwiftUI
 
 @Observable
 final class CardLibraryViewModel {
-    var selectedCategory: String = "すべて"
+    var selectedCategory: String = Constants.allCategories[0]
 
     func filteredCards(from allCards: [PictureCard]) -> [PictureCard] {
-        let visibleCards = allCards.filter { !$0.isHidden }
-        if selectedCategory == "すべて" {
-            return visibleCards.sorted { $0.sortOrder < $1.sortOrder }
-        }
-        return visibleCards
-            .filter { $0.category == selectedCategory }
+        return allCards
+            .filter { !$0.isHidden && $0.category == selectedCategory }
             .sorted { $0.sortOrder < $1.sortOrder }
     }
 }
