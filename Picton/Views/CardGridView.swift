@@ -6,7 +6,7 @@ struct CardGridView: View {
     let onCardTap: (PictureCard) -> Void
     let onCardLongPress: (PictureCard) -> Void
     let onAddTap: () -> Void
-    var isReorderMode: Bool = false
+    var isEditMode: Bool = false
     var onReorder: ((PictureCard, PictureCard) -> Void)?
 
     private let columns = [
@@ -20,7 +20,7 @@ struct CardGridView: View {
                     cardItem(for: card)
                 }
 
-                if !isReorderMode {
+                if isEditMode {
                     addButton
                 }
             }
@@ -35,10 +35,10 @@ struct CardGridView: View {
             card: card,
             onTap: { onCardTap(card) },
             onLongPress: { onCardLongPress(card) },
-            isReorderMode: isReorderMode
+            isEditMode: isEditMode
         )
 
-        if isReorderMode {
+        if isEditMode {
             item
                 .draggable(card.id.uuidString)
                 .dropDestination(for: String.self) { items, _ in
