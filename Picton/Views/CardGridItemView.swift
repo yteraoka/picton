@@ -6,8 +6,6 @@ struct CardGridItemView: View {
     let onLongPress: () -> Void
     var isEditMode: Bool = false
 
-    @State private var wiggleAngle: Double = 0
-
     var body: some View {
         Button {
             onTap()
@@ -49,19 +47,6 @@ struct CardGridItemView: View {
                     onLongPress()
                 }
         )
-        .rotationEffect(.degrees(wiggleAngle))
-        .onChange(of: isEditMode) { _, newValue in
-            if newValue {
-                wiggleAngle = -1.5
-                withAnimation(.easeInOut(duration: 0.12).repeatForever(autoreverses: true)) {
-                    wiggleAngle = 1.5
-                }
-            } else {
-                withAnimation(.default) {
-                    wiggleAngle = 0
-                }
-            }
-        }
         .accessibilityLabel(card.displayName)
         .accessibilityHint(isEditMode ? "タップで編集、ドラッグして並べ替え" : "タップして文に追加")
     }
