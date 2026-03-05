@@ -9,7 +9,6 @@ enum Constants {
     static let sentenceAreaHeight: CGFloat = 80
 
     static let ttsRate: Float = 0.42
-    static let ttsPitchMultiplier: Float = 1.1
     static let ttsLanguage = "ja-JP"
 
     enum Colors {

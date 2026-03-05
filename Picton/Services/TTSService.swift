@@ -16,11 +16,18 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
         synthesizer.stopSpeaking(at: .immediate)
 
         let utterance = AVSpeechUtterance(string: text)
-        utterance.voice = AVSpeechSynthesisVoice(language: Constants.ttsLanguage)
+        utterance.voice = preferredJapaneseVoice()
         utterance.rate = Constants.ttsRate
-        utterance.pitchMultiplier = Constants.ttsPitchMultiplier
 
         synthesizer.speak(utterance)
+    }
+
+    private func preferredJapaneseVoice() -> AVSpeechSynthesisVoice? {
+        AVSpeechSynthesisVoice.speechVoices()
+            .filter { $0.language == Constants.ttsLanguage }
+            .sorted { $0.quality.rawValue > $1.quality.rawValue }
+            .first
+        ?? AVSpeechSynthesisVoice(language: Constants.ttsLanguage)
     }
 
     func stop() {
