@@ -60,25 +60,25 @@ struct CardGridView: View {
             VStack(spacing: 6) {
                 Image(systemName: "plus.circle.fill")
                     .font(.title)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.secondary)
                     .frame(width: 56, height: 56)
 
                 Text("追加")
                     .font(.callout)
                     .fontWeight(.semibold)
-                    .foregroundStyle(.blue)
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 10)
             .padding(.horizontal, 4)
             .background(
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(Color.blue.opacity(0.05))
+                    .fill(Color(.systemGray5))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6]))
-                    .foregroundStyle(Color.blue.opacity(0.3))
+                    .foregroundStyle(Color(.systemGray3))
             )
         }
         .buttonStyle(.plain)
