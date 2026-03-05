@@ -6,7 +6,7 @@ struct CardGridItemView: View {
     let onLongPress: () -> Void
     var isEditMode: Bool = false
 
-    @State private var wiggle = false
+    @State private var wiggleAngle: Double = 0
 
     var body: some View {
         Button {
@@ -49,14 +49,17 @@ struct CardGridItemView: View {
                     onLongPress()
                 }
         )
-        .rotationEffect(.degrees(isEditMode ? (wiggle ? 1.5 : -1.5) : 0))
+        .rotationEffect(.degrees(wiggleAngle))
         .onChange(of: isEditMode) { _, newValue in
             if newValue {
+                wiggleAngle = -1.5
                 withAnimation(.easeInOut(duration: 0.12).repeatForever(autoreverses: true)) {
-                    wiggle = true
+                    wiggleAngle = 1.5
                 }
             } else {
-                wiggle = false
+                withAnimation(.default) {
+                    wiggleAngle = 0
+                }
             }
         }
         .accessibilityLabel(card.displayName)
