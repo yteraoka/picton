@@ -55,7 +55,7 @@ struct CardGridItemView: View {
             value: isEditMode
         )
         .accessibilityLabel(card.displayName)
-        .accessibilityHint(isEditMode ? "ドラッグして並べ替え、長押しで編集" : "タップして文に追加")
+        .accessibilityHint(isEditMode ? "タップで編集、ドラッグして並べ替え" : "タップして文に追加")
     }
 
     @ViewBuilder

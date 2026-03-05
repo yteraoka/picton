@@ -29,18 +29,18 @@ struct ContentView: View {
             CardGridView(
                 cards: libraryVM.filteredCards(from: allCards),
                 onCardTap: { card in
-                    guard !isEditMode else { return }
-                    withAnimation(.easeInOut(duration: 0.2)) {
-                        sentenceVM.append(card)
+                    if isEditMode {
+                        editingCard = card
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            sentenceVM.append(card)
+                        }
+                        ttsService.speak(card.kanaText)
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
-                    ttsService.speak(card.kanaText)
-                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 },
-                onCardLongPress: { card in
-                    guard isEditMode else { return }
-                    editingCard = card
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                },
+                onCardLongPress: { _ in },
                 onAddTap: {
                     showAddCard = true
                 },
