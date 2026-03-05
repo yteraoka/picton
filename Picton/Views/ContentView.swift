@@ -46,9 +46,17 @@ struct ContentView: View {
                 },
                 isEditMode: isEditMode,
                 onReorder: { draggedCard, targetCard in
-                    let tempOrder = draggedCard.sortOrder
-                    draggedCard.sortOrder = targetCard.sortOrder
-                    targetCard.sortOrder = tempOrder
+                    var cards = libraryVM.filteredCards(from: allCards)
+                    guard let fromIndex = cards.firstIndex(where: { $0.id == draggedCard.id }),
+                          let toIndex = cards.firstIndex(where: { $0.id == targetCard.id }),
+                          fromIndex != toIndex
+                    else { return }
+                    cards.remove(at: fromIndex)
+                    let insertAt = fromIndex < toIndex ? toIndex - 1 : toIndex
+                    cards.insert(draggedCard, at: insertAt)
+                    for (index, card) in cards.enumerated() {
+                        card.sortOrder = index
+                    }
                     try? modelContext.save()
                     UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 }
