@@ -52,8 +52,7 @@ struct ContentView: View {
                           fromIndex != toIndex
                     else { return }
                     cards.remove(at: fromIndex)
-                    let insertAt = fromIndex < toIndex ? toIndex - 1 : toIndex
-                    cards.insert(draggedCard, at: insertAt)
+                    cards.insert(draggedCard, at: toIndex)
                     for (index, card) in cards.enumerated() {
                         card.sortOrder = index
                     }
