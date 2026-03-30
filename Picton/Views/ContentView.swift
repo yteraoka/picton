@@ -36,66 +36,30 @@ struct ContentView: View {
                 ZStack(alignment: .topLeading) {
                     // 前のカテゴリ（左側）
                     if currentIndex > 0 {
-                        CardGridView(
-                            cards: filteredCards(from: allCards, category: categories[currentIndex - 1]),
-                            onCardTap: { _ in },
-                            onCardLongPress: { _ in },
-                            onAddTap: {},
-                            isEditMode: false,
-                            onReorder: nil
+                        categoryContent(
+                            for: categories[currentIndex - 1],
+                            isInteractive: false,
+                            allCards: allCards
                         )
                         .frame(width: width)
                         .offset(x: dragOffset - width)
                     }
 
                     // 現在のカテゴリ
-                    CardGridView(
-                        cards: libraryVM.filteredCards(from: allCards),
-                        onCardTap: { card in
-                            guard !isHorizontalDrag else { return }
-                            if isEditMode {
-                                editingCard = card
-                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            } else {
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    sentenceVM.append(card)
-                                }
-                                ttsService.speak(card.kanaText)
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            }
-                        },
-                        onCardLongPress: { _ in },
-                        onAddTap: {
-                            showAddCard = true
-                        },
-                        isEditMode: isEditMode,
-                        onReorder: { draggedCard, targetCard in
-                            var cards = libraryVM.filteredCards(from: allCards)
-                            guard let fromIndex = cards.firstIndex(where: { $0.id == draggedCard.id }),
-                                  let toIndex = cards.firstIndex(where: { $0.id == targetCard.id }),
-                                  fromIndex != toIndex
-                            else { return }
-                            cards.remove(at: fromIndex)
-                            cards.insert(draggedCard, at: toIndex)
-                            for (index, card) in cards.enumerated() {
-                                card.sortOrder = index
-                            }
-                            try? modelContext.save()
-                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                        }
+                    categoryContent(
+                        for: categories[currentIndex],
+                        isInteractive: true,
+                        allCards: allCards
                     )
                     .frame(width: width)
                     .offset(x: dragOffset)
 
                     // 次のカテゴリ（右側）
                     if currentIndex < categories.count - 1 {
-                        CardGridView(
-                            cards: filteredCards(from: allCards, category: categories[currentIndex + 1]),
-                            onCardTap: { _ in },
-                            onCardLongPress: { _ in },
-                            onAddTap: {},
-                            isEditMode: false,
-                            onReorder: nil
+                        categoryContent(
+                            for: categories[currentIndex + 1],
+                            isInteractive: false,
+                            allCards: allCards
                         )
                         .frame(width: width)
                         .offset(x: dragOffset + width)
@@ -199,6 +163,56 @@ struct ContentView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
             libraryVM.selectedCategory = newCategory
             dragOffset = 0
+        }
+    }
+
+    @ViewBuilder
+    private func categoryContent(for category: String, isInteractive: Bool, allCards: [PictureCard]) -> some View {
+        if category == "いつ" {
+            WhenCategoryView(isInteractive: isInteractive) { card in
+                guard isInteractive, !isHorizontalDrag else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    sentenceVM.append(card)
+                }
+                ttsService.speak(card.kanaText)
+            }
+        } else {
+            CardGridView(
+                cards: filteredCards(from: allCards, category: category),
+                onCardTap: { card in
+                    guard isInteractive, !isHorizontalDrag else { return }
+                    if isEditMode {
+                        editingCard = card
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            sentenceVM.append(card)
+                        }
+                        ttsService.speak(card.kanaText)
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                },
+                onCardLongPress: { _ in },
+                onAddTap: {
+                    guard isInteractive else { return }
+                    showAddCard = true
+                },
+                isEditMode: isInteractive && isEditMode,
+                onReorder: isInteractive ? { draggedCard, targetCard in
+                    var cards = filteredCards(from: allCards, category: category)
+                    guard let fromIndex = cards.firstIndex(where: { $0.id == draggedCard.id }),
+                          let toIndex = cards.firstIndex(where: { $0.id == targetCard.id }),
+                          fromIndex != toIndex
+                    else { return }
+                    cards.remove(at: fromIndex)
+                    cards.insert(draggedCard, at: toIndex)
+                    for (index, card) in cards.enumerated() {
+                        card.sortOrder = index
+                    }
+                    try? modelContext.save()
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } : nil
+            )
         }
     }
 

@@ -62,6 +62,7 @@ func categoryColor(for category: String) -> Color {
     case "食べ物": return .green
     case "人": return .purple
     case "生活": return .teal
+    case "いつ": return .indigo
     default: return .gray
     }
 }
