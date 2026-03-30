@@ -31,57 +31,55 @@ struct WhenCategoryView: View {
                     .padding(.horizontal, 8)
                     .padding(.vertical, 8)
 
-                // 選択日付カード（きょう/あした/あさって以外）
-                if !isPresetDate(selectedDate) {
-                    let card = makeDateCard(for: selectedDate)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("選択した日付")
-                            .font(.caption)
-                            .foregroundStyle(.secondary)
-                            .padding(.horizontal, 16)
-
-                        Button {
-                            onCardTap(card)
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "calendar")
-                                    .font(.title3)
-                                    .foregroundStyle(categoryColor(for: "いつ"))
-                                    .frame(width: 40, height: 40)
-                                    .background(categoryColor(for: "いつ").opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(card.displayName)
-                                        .font(.body)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(.primary)
-                                    Text(card.kanaText)
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "plus.circle.fill")
-                                    .font(.title3)
-                                    .foregroundStyle(categoryColor(for: "いつ"))
-                            }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 10)
-                            .background(categoryColor(for: "いつ").opacity(0.08))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 12)
-                                    .stroke(categoryColor(for: "いつ").opacity(0.35), lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                        }
-                        .buttonStyle(.plain)
+                // 選択日付カード
+                let card = cardForSelectedDate(selectedDate)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("選択した日付")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                         .padding(.horizontal, 16)
+
+                    Button {
+                        onCardTap(card)
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: card.presetImageName ?? "calendar")
+                                .font(.title3)
+                                .foregroundStyle(categoryColor(for: "いつ"))
+                                .frame(width: 40, height: 40)
+                                .background(categoryColor(for: "いつ").opacity(0.12))
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(card.displayName)
+                                    .font(.body)
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
+                                Text(card.kanaText)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "plus.circle.fill")
+                                .font(.title3)
+                                .foregroundStyle(categoryColor(for: "いつ"))
+                        }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .background(categoryColor(for: "いつ").opacity(0.08))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(categoryColor(for: "いつ").opacity(0.35), lineWidth: 1)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
-                    .padding(.bottom, 20)
+                    .buttonStyle(.plain)
+                    .padding(.horizontal, 16)
                 }
+                .padding(.bottom, 20)
             }
         }
         .disabled(!isInteractive)
@@ -143,9 +141,19 @@ struct WhenCategoryView: View {
         return formatter.string(from: date)
     }
 
-    private func isPresetDate(_ date: Date) -> Bool {
+    private func cardForSelectedDate(_ date: Date) -> PictureCard {
         let d = Calendar.current.startOfDay(for: date)
-        return d == today || d == tomorrow || d == dayAfterTomorrow
+        if d == today {
+            return PictureCard(displayName: "きょう", kanaText: "きょう", category: "いつ",
+                               isPreset: true, presetImageName: "sun.max.fill")
+        } else if d == tomorrow {
+            return PictureCard(displayName: "あした", kanaText: "あした", category: "いつ",
+                               isPreset: true, presetImageName: "moon.stars.fill")
+        } else if d == dayAfterTomorrow {
+            return PictureCard(displayName: "あさって", kanaText: "あさって", category: "いつ",
+                               isPreset: true, presetImageName: "calendar.badge.plus")
+        }
+        return makeDateCard(for: date)
     }
 
     private func makeDateCard(for date: Date) -> PictureCard {
