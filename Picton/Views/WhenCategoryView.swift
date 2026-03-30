@@ -26,11 +26,10 @@ struct WhenCategoryView: View {
                 Divider()
                     .padding(.horizontal, 16)
 
-                // カレンダー
-                DatePicker("", selection: $selectedDate, displayedComponents: .date)
-                    .datePickerStyle(.graphical)
+                // カスタムカレンダー
+                CalendarGridView(selectedDate: $selectedDate)
                     .padding(.horizontal, 8)
-                    .environment(\.locale, Locale(identifier: "ja_JP"))
+                    .padding(.vertical, 8)
 
                 // 選択日付カード（きょう/あした/あさって以外）
                 if !isPresetDate(selectedDate) {
@@ -192,5 +191,172 @@ struct WhenCategoryView: View {
         let ones = n % 10
         let tensStr = tens == 1 ? "じゅう" : units[tens] + "じゅう"
         return tensStr + (ones > 0 ? units[ones] : "")
+    }
+}
+
+// MARK: - カスタムカレンダーグリッド
+
+private struct CalendarGridView: View {
+    @Binding var selectedDate: Date
+
+    @State private var displayedMonth: Date = {
+        let cal = Calendar.current
+        let comps = cal.dateComponents([.year, .month], from: Date())
+        return cal.date(from: comps)!
+    }()
+
+    private static var cal: Calendar = {
+        var c = Calendar(identifier: .gregorian)
+        c.locale = Locale(identifier: "ja_JP")
+        c.firstWeekday = 1  // 日曜始まり
+        return c
+    }()
+    private var cal: Calendar { Self.cal }
+
+    // 日・月・火・水・木・金・土
+    private let weekdayLabels = ["日", "月", "火", "水", "木", "金", "土"]
+
+    var body: some View {
+        VStack(spacing: 6) {
+            // 月ナビゲーション
+            HStack {
+                Button {
+                    changeMonth(by: -1)
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                Spacer()
+
+                Text(monthTitle(for: displayedMonth))
+                    .font(.subheadline)
+                    .fontWeight(.semibold)
+
+                Spacer()
+
+                Button {
+                    changeMonth(by: 1)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 36, height: 36)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 4)
+
+            // 曜日ヘッダー
+            HStack(spacing: 0) {
+                ForEach(0..<7, id: \.self) { col in
+                    Text(weekdayLabels[col])
+                        .font(.caption)
+                        .fontWeight(.medium)
+                        .foregroundStyle(col == 0 ? .red : col == 6 ? .blue : .secondary)
+                        .frame(maxWidth: .infinity)
+                }
+            }
+
+            // 日付グリッド
+            let days = calendarDays(for: displayedMonth)
+            let columns = Array(repeating: GridItem(.flexible(), spacing: 0), count: 7)
+            LazyVGrid(columns: columns, spacing: 2) {
+                ForEach(0..<days.count, id: \.self) { i in
+                    if let date = days[i] {
+                        DayCell(
+                            date: date,
+                            selectedDate: $selectedDate,
+                            cal: cal,
+                            columnIndex: i % 7
+                        )
+                    } else {
+                        Color.clear.frame(height: 36)
+                    }
+                }
+            }
+        }
+    }
+
+    private func monthTitle(for date: Date) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "ja_JP")
+        f.dateFormat = "yyyy年M月"
+        return f.string(from: date)
+    }
+
+    private func changeMonth(by value: Int) {
+        if let next = cal.date(byAdding: .month, value: value, to: displayedMonth) {
+            displayedMonth = next
+        }
+    }
+
+    private func calendarDays(for month: Date) -> [Date?] {
+        let comps = cal.dateComponents([.year, .month], from: month)
+        guard let startOfMonth = cal.date(from: comps),
+              let range = cal.range(of: .day, in: .month, for: startOfMonth) else { return [] }
+
+        // firstWeekday=1(日曜)なので、weekday値がそのままカラムインデックス
+        let firstWeekday = cal.component(.weekday, from: startOfMonth) // 1=日, 2=月, ..., 7=土
+        let offset = firstWeekday - 1
+
+        var days: [Date?] = Array(repeating: nil, count: offset)
+        for day in 0..<range.count {
+            days.append(cal.date(byAdding: .day, value: day, to: startOfMonth))
+        }
+        while days.count % 7 != 0 { days.append(nil) }
+        return days
+    }
+}
+
+private struct DayCell: View {
+    let date: Date
+    @Binding var selectedDate: Date
+    let cal: Calendar
+    let columnIndex: Int  // 0=日曜, 6=土曜
+
+    private var today: Date { cal.startOfDay(for: Date()) }
+    private var isToday: Bool { cal.startOfDay(for: date) == today }
+    private var isSelected: Bool { cal.startOfDay(for: date) == cal.startOfDay(for: selectedDate) }
+    private var dayNumber: Int { cal.component(.day, from: date) }
+
+    private var textColor: Color {
+        if isSelected { return .white }
+        if columnIndex == 0 { return .red }    // 日曜
+        if columnIndex == 6 { return .blue }   // 土曜
+        return .primary
+    }
+
+    var body: some View {
+        Button {
+            selectedDate = cal.startOfDay(for: date)
+        } label: {
+            Text("\(dayNumber)")
+                .font(.system(size: 15))
+                .fontWeight(isToday || isSelected ? .bold : .regular)
+                .foregroundStyle(textColor)
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(
+                    Group {
+                        if isSelected {
+                            Circle()
+                                .fill(categoryColor(for: "いつ"))
+                                .padding(2)
+                        } else if isToday {
+                            Circle()
+                                .strokeBorder(categoryColor(for: "いつ"), lineWidth: 1.5)
+                                .padding(2)
+                        }
+                    }
+                )
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("\(dayNumber)日")
     }
 }
