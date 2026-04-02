@@ -1,0 +1,27 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "8ddd710fc08d",
+  "strategy": "manual-commit",
+  "branch": "fix/async-image-loading",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "Picton/Views/CardGridItemView.swift",
+    "Picton/Views/HiddenCardsListView.swift",
+    "Picton/Views/SentenceCardView.swift"
+  ],
+  "sessions": [
+    {
+      "metadata": "/8d/dd710fc08d/0/metadata.json",
+      "transcript": "/8d/dd710fc08d/0/full.jsonl",
+      "content_hash": "/8d/dd710fc08d/0/content_hash.txt",
+      "prompt": "/8d/dd710fc08d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 24,
+    "cache_creation_tokens": 11675,
+    "cache_read_tokens": 438650,
+    "output_tokens": 4235,
+    "api_call_count": 20
+  }
+}
