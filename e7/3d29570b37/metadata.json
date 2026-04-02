@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "e73d29570b37",
+  "strategy": "manual-commit",
+  "branch": "fix/reorder-transportation-category",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/e7/3d29570b37/0/metadata.json",
+      "transcript": "/e7/3d29570b37/0/full.jsonl",
+      "content_hash": "/e7/3d29570b37/0/content_hash.txt",
+      "prompt": "/e7/3d29570b37/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 195,
+    "cache_creation_tokens": 86169,
+    "cache_read_tokens": 8272677,
+    "output_tokens": 33551,
+    "api_call_count": 153
+  }
+}
