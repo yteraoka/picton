@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "54396108f0fa",
+  "session_id": "e32a6fe8-c666-4290-9274-e5eec6a309ca",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T13:23:45.959726Z",
+  "branch": "fix/remove-dead-filter",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "555ac78341e5",
+  "token_usage": {
+    "input_tokens": 126,
+    "cache_creation_tokens": 60278,
+    "cache_read_tokens": 4198078,
+    "output_tokens": 22190,
+    "api_call_count": 100
+  },
+  "session_metrics": {
+    "turn_count": 12
+  }
+}
