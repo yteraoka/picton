@@ -46,14 +46,14 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
     // MARK: - AVSpeechSynthesizerDelegate
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
-        isSpeaking = true
+        DispatchQueue.main.async { self.isSpeaking = true }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        isSpeaking = false
+        DispatchQueue.main.async { self.isSpeaking = false }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        isSpeaking = false
+        DispatchQueue.main.async { self.isSpeaking = false }
     }
 }
