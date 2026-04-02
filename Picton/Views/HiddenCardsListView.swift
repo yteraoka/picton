@@ -17,7 +17,7 @@ struct HiddenCardsListView: View {
             } else {
                 List(hiddenCards) { card in
                     HStack(spacing: 12) {
-                        cardThumbnail(card)
+                        HiddenCardThumbnail(card: card)
                             .frame(width: 44, height: 44)
                             .clipShape(RoundedRectangle(cornerRadius: 6))
 
@@ -45,24 +45,36 @@ struct HiddenCardsListView: View {
         .navigationBarTitleDisplayMode(.inline)
     }
 
-    @ViewBuilder
-    private func cardThumbnail(_ card: PictureCard) -> some View {
-        if card.isPreset, let imageName = card.presetImageName, UIImage(named: imageName) != nil {
-            Image(imageName)
-                .resizable()
-                .scaledToFill()
-        } else if card.isPreset, let symbolName = card.presetImageName {
-            Image(systemName: symbolName)
-                .font(.title3)
-                .foregroundStyle(categoryColor(for: card.category))
-        } else if let uiImage = ImageStorageService.load(id: card.id) {
-            Image(uiImage: uiImage)
-                .resizable()
-                .scaledToFill()
-        } else {
-            Image(systemName: "photo")
-                .font(.title3)
-                .foregroundStyle(.gray)
+}
+
+private struct HiddenCardThumbnail: View {
+    let card: PictureCard
+
+    @State private var customImage: UIImage?
+
+    var body: some View {
+        Group {
+            if card.isPreset, let imageName = card.presetImageName, UIImage(named: imageName) != nil {
+                Image(imageName)
+                    .resizable()
+                    .scaledToFill()
+            } else if card.isPreset, let symbolName = card.presetImageName {
+                Image(systemName: symbolName)
+                    .font(.title3)
+                    .foregroundStyle(categoryColor(for: card.category))
+            } else if let uiImage = customImage {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+            } else {
+                Image(systemName: "photo")
+                    .font(.title3)
+                    .foregroundStyle(.gray)
+            }
+        }
+        .task(id: card.id) {
+            guard !card.isPreset else { return }
+            customImage = await Task.detached { ImageStorageService.load(id: card.id) }.value
         }
     }
 }

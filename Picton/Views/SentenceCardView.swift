@@ -4,6 +4,8 @@ struct SentenceCardView: View {
     let card: PictureCard
     let onRemove: () -> Void
 
+    @State private var customImage: UIImage?
+
     var body: some View {
         Button(action: onRemove) {
             VStack(spacing: 2) {
@@ -30,6 +32,10 @@ struct SentenceCardView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(card.displayName)を削除")
+        .task(id: card.id) {
+            guard !card.isPreset else { return }
+            customImage = await Task.detached { ImageStorageService.load(id: card.id) }.value
+        }
     }
 
     @ViewBuilder
@@ -42,7 +48,7 @@ struct SentenceCardView: View {
             Image(systemName: symbolName)
                 .font(.title2)
                 .foregroundStyle(categoryColor(for: card.category))
-        } else if let uiImage = ImageStorageService.load(id: card.id) {
+        } else if let uiImage = customImage {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
