@@ -1,4 +1,7 @@
 import AVFoundation
+import os
+
+private let logger = Logger(subsystem: "me.teraoka.Picton", category: "TTSService")
 
 @Observable
 final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendable {
@@ -39,7 +42,7 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
             try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
             try AVAudioSession.sharedInstance().setActive(true)
         } catch {
-            print("Failed to configure audio session: \(error)")
+            logger.error("Failed to configure audio session: \(error)")
         }
     }
 
