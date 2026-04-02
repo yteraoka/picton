@@ -24,5 +24,5 @@ enum Constants {
         return docs.appendingPathComponent("CustomCardImages", isDirectory: true)
     }
 
-    static let allCategories = ["いつ", "場所", "動作", "食べ物", "人", "生活", "気持ち", "手段"]
+    static let allCategories = ["いつ", "手段", "場所", "動作", "食べ物", "人", "生活", "気持ち"]
 }
