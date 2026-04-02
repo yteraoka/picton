@@ -32,9 +32,33 @@ enum PresetImageBootstrapper {
             }
         } else {
             removeDeletedPresets(context: context)
+            addNewPresets(context: context)
         }
 
         try? context.save()
+    }
+
+    /// PresetCardData に追加された新規プリセットカードを DB に挿入する
+    private static func addNewPresets(context: ModelContext) {
+        let descriptor = FetchDescriptor<PictureCard>(
+            predicate: #Predicate { $0.isPreset == true }
+        )
+        guard let existing = try? context.fetch(descriptor) else { return }
+        let existingSymbols = Set(existing.compactMap { $0.presetImageName })
+        let maxSortOrder = existing.map { $0.sortOrder }.max() ?? -1
+
+        let newDefinitions = PresetCardData.all.filter { !existingSymbols.contains($0.sfSymbol) }
+        for (offset, definition) in newDefinitions.enumerated() {
+            let card = PictureCard(
+                displayName: definition.displayName,
+                kanaText: definition.kanaText,
+                category: definition.category,
+                isPreset: true,
+                presetImageName: definition.sfSymbol,
+                sortOrder: maxSortOrder + 1 + offset
+            )
+            context.insert(card)
+        }
     }
 
     /// PresetCardData から削除されたプリセットカードを DB からも除去する

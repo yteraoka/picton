@@ -8,7 +8,7 @@ struct PresetCardDefinition {
 }
 
 enum PresetCardData {
-    static let all: [PresetCardDefinition] = places + actions + foods + people + daily + feelings
+    static let all: [PresetCardDefinition] = places + actions + foods + people + daily + feelings + transportation
 
     // MARK: - 場所 (8)
     static let places: [PresetCardDefinition] = [
@@ -77,5 +77,13 @@ enum PresetCardData {
         PresetCardDefinition(displayName: "お風呂", kanaText: "おふろ", category: "生活", sfSymbol: "bathtub.fill"),
         PresetCardDefinition(displayName: "着替え", kanaText: "きがえ", category: "生活", sfSymbol: "tshirt.fill"),
         PresetCardDefinition(displayName: "手洗い", kanaText: "てあらい", category: "生活", sfSymbol: "hands.and.sparkles.fill"),
+    ]
+
+    // MARK: - 手段 (4)
+    static let transportation: [PresetCardDefinition] = [
+        PresetCardDefinition(displayName: "くるま", kanaText: "くるまで", category: "手段", sfSymbol: "car.fill"),
+        PresetCardDefinition(displayName: "電車", kanaText: "でんしゃで", category: "手段", sfSymbol: "tram.fill"),
+        PresetCardDefinition(displayName: "新幹線", kanaText: "しんかんせんで", category: "手段", sfSymbol: "train.side.front.car"),
+        PresetCardDefinition(displayName: "飛行機", kanaText: "ひこうきで", category: "手段", sfSymbol: "airplane"),
     ]
 }
