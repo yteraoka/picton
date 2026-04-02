@@ -1,5 +1,4 @@
 # Xcode
-*.xcodeproj/
 *.xcworkspace/
 xcuserdata/
 *.xcuserstate
@@ -17,7 +16,6 @@ build/
 Packages/
 Package.pins
 Package.resolved
-*.xcodeproj
 
 # CocoaPods
 Pods/
