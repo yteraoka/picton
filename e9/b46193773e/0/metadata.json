@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "e9b46193773e",
+  "session_id": "e32a6fe8-c666-4290-9274-e5eec6a309ca",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T13:06:50.869015Z",
+  "branch": "refactor/card-image-view",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "Picton/Views/CardImageView.swift",
+    "Picton/Views/CardGridItemView.swift",
+    "Picton/Views/SentenceCardView.swift",
+    "Picton/Views/HiddenCardsListView.swift"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "44135dd8de4b",
+  "checkpoint_transcript_start": 74,
+  "transcript_lines_at_start": 74,
+  "token_usage": {
+    "input_tokens": 29,
+    "cache_creation_tokens": 17679,
+    "cache_read_tokens": 860133,
+    "output_tokens": 6633,
+    "api_call_count": 25
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-02T13:06:50.640111Z",
+    "agent_lines": 37,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 37,
+    "agent_percentage": 100
+  }
+}
