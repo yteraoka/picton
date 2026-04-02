@@ -8,8 +8,8 @@ struct CardImageView: View {
 
     var body: some View {
         Group {
-            if card.isPreset, let imageName = card.presetImageName, UIImage(named: imageName) != nil {
-                Image(imageName)
+            if card.isPreset, let imageName = card.presetImageName, let uiImage = UIImage(named: imageName) {
+                Image(uiImage: uiImage)
                     .resizable()
                     .scaledToFill()
             } else if card.isPreset, let symbolName = card.presetImageName {
