@@ -300,10 +300,10 @@ private extension Data {
     }
 
     func readUInt16(at offset: Int) -> UInt16 {
-        subdata(in: offset..<offset + 2).withUnsafeBytes { $0.load(as: UInt16.self).littleEndian }
+        subdata(in: offset..<offset + 2).withUnsafeBytes { UInt16(littleEndian: $0.load(as: UInt16.self)) }
     }
 
     func readUInt32(at offset: Int) -> UInt32 {
-        subdata(in: offset..<offset + 4).withUnsafeBytes { $0.load(as: UInt32.self).littleEndian }
+        subdata(in: offset..<offset + 4).withUnsafeBytes { UInt32(littleEndian: $0.load(as: UInt32.self)) }
     }
 }
