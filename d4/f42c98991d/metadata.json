@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "d4f42c98991d",
+  "strategy": "manual-commit",
+  "branch": "feat/add-walking-card",
+  "checkpoints_count": 1,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/d4/f42c98991d/0/metadata.json",
+      "transcript": "/d4/f42c98991d/0/full.jsonl",
+      "content_hash": "/d4/f42c98991d/0/content_hash.txt",
+      "prompt": "/d4/f42c98991d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 218,
+    "cache_creation_tokens": 104580,
+    "cache_read_tokens": 9909995,
+    "output_tokens": 38733,
+    "api_call_count": 170
+  }
+}
