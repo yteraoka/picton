@@ -16,7 +16,7 @@ struct EditCardView: View {
     @State private var showDeleteConfirmation = false
     @State private var isHidden: Bool
 
-    let categories = Constants.allCategories.filter { $0 != "すべて" }
+    let categories = Constants.allCategories
 
     init(card: PictureCard) {
         self.card = card
