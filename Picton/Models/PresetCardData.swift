@@ -85,6 +85,6 @@ enum PresetCardData {
         PresetCardDefinition(displayName: "電車", kanaText: "でんしゃで", category: "手段", sfSymbol: "tram.fill"),
         PresetCardDefinition(displayName: "新幹線", kanaText: "しんかんせんで", category: "手段", sfSymbol: "train.side.front.car"),
         PresetCardDefinition(displayName: "飛行機", kanaText: "ひこうきで", category: "手段", sfSymbol: "airplane"),
-        PresetCardDefinition(displayName: "歩き", kanaText: "あるいて", category: "手段", sfSymbol: "figure.walk"),
+        PresetCardDefinition(displayName: "歩き", kanaText: "あるいて", category: "手段", sfSymbol: "figure.walk.motion"),
     ]
 }
