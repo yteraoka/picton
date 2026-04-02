@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "ce256c87c5f3",
+  "strategy": "manual-commit",
+  "branch": "fix/tts-main-thread-safety",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "Picton/Services/TTSService.swift"
+  ],
+  "sessions": [
+    {
+      "metadata": "/ce/256c87c5f3/0/metadata.json",
+      "transcript": "/ce/256c87c5f3/0/full.jsonl",
+      "content_hash": "/ce/256c87c5f3/0/content_hash.txt",
+      "prompt": "/ce/256c87c5f3/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 7,
+    "cache_creation_tokens": 7120,
+    "cache_read_tokens": 78127,
+    "output_tokens": 908,
+    "api_call_count": 5
+  }
+}
