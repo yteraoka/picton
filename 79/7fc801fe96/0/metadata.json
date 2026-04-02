@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "797fc801fe96",
+  "session_id": "e32a6fe8-c666-4290-9274-e5eec6a309ca",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T13:41:31.087343Z",
+  "branch": "feat/add-walking-card",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "e9d69c3267c8",
+  "token_usage": {
+    "input_tokens": 208,
+    "cache_creation_tokens": 89300,
+    "cache_read_tokens": 9093129,
+    "output_tokens": 35711,
+    "api_call_count": 162
+  },
+  "session_metrics": {
+    "turn_count": 22
+  }
+}
