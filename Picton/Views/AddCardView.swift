@@ -13,7 +13,7 @@ struct AddCardView: View {
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var showCamera = false
 
-    let categories = Constants.allCategories.filter { $0 != "すべて" }
+    let categories = Constants.allCategories
 
     var body: some View {
         NavigationStack {
