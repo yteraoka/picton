@@ -1,0 +1,36 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "bf6cf6417aff",
+  "session_id": "e32a6fe8-c666-4290-9274-e5eec6a309ca",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-02T13:18:07.026681Z",
+  "branch": "refactor/card-image-view",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Picton.xcodeproj/project.pbxproj"
+  ],
+  "agent": "Claude Code",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "2aea4ba89927",
+  "checkpoint_transcript_start": 143,
+  "transcript_lines_at_start": 143,
+  "token_usage": {
+    "input_tokens": 33,
+    "cache_creation_tokens": 15412,
+    "cache_read_tokens": 1282815,
+    "output_tokens": 7408,
+    "api_call_count": 25
+  },
+  "session_metrics": {
+    "turn_count": 8
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-02T13:18:06.904793Z",
+    "agent_lines": 0,
+    "human_added": 438,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 438,
+    "agent_percentage": 0
+  }
+}

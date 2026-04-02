@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.5.2",
+  "checkpoint_id": "bf6cf6417aff",
+  "strategy": "manual-commit",
+  "branch": "refactor/card-image-view",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Picton.xcodeproj/project.pbxproj"
+  ],
+  "sessions": [
+    {
+      "metadata": "/bf/6cf6417aff/0/metadata.json",
+      "transcript": "/bf/6cf6417aff/0/full.jsonl",
+      "content_hash": "/bf/6cf6417aff/0/content_hash.txt",
+      "prompt": "/bf/6cf6417aff/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 33,
+    "cache_creation_tokens": 15412,
+    "cache_read_tokens": 1282815,
+    "output_tokens": 7408,
+    "api_call_count": 25
+  }
+}
