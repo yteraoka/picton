@@ -6,6 +6,8 @@ struct CardGridItemView: View {
     let onLongPress: () -> Void
     var isEditMode: Bool = false
 
+    @State private var customImage: UIImage?
+
     var body: some View {
         Button {
             onTap()
@@ -49,6 +51,10 @@ struct CardGridItemView: View {
         )
         .accessibilityLabel(card.displayName)
         .accessibilityHint(isEditMode ? "タップで編集、ドラッグして並べ替え" : "タップして文に追加")
+        .task(id: card.id) {
+            guard !card.isPreset else { return }
+            customImage = await Task.detached { ImageStorageService.load(id: card.id) }.value
+        }
     }
 
     @ViewBuilder
@@ -61,7 +67,7 @@ struct CardGridItemView: View {
             Image(systemName: symbolName)
                 .font(.title)
                 .foregroundStyle(categoryColor(for: card.category))
-        } else if let uiImage = ImageStorageService.load(id: card.id) {
+        } else if let uiImage = customImage {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
