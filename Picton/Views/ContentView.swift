@@ -210,7 +210,8 @@ struct ContentView: View {
                         card.sortOrder = index
                     }
                     try? modelContext.save()
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    // ドラッグ中の移動ごとに呼ばれるため、軽い selection tick にする
+                    UISelectionFeedbackGenerator().selectionChanged()
                 } : nil
             )
         }
