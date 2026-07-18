@@ -14,6 +14,10 @@ struct CardGridView: View {
     // ドラッグが動き出してから元セルを隠す（リフトプレビューの
     // スナップショットが撮られる前に隠すとプレビューが真っ白になるため）
     @State private var isDragActive = false
+    // provider の解放は最大2秒ほど遅れて届くことがあり、その間に次のドラッグ
+    // セッションが始まっていると古い解放が新しい状態を消してしまう。
+    // セッションごとのトークンで古い provider の後始末を無効化する
+    @State private var dragToken = UUID()
 
     private let columns = [
         GridItem(.adaptive(minimum: Constants.gridItemMinSize), spacing: 10)
@@ -59,10 +63,15 @@ struct CardGridView: View {
                 .opacity(draggedCard?.id == card.id && isDragActive ? 0 : 1)
                 .contentShape(.dragPreview, RoundedRectangle(cornerRadius: 12))
                 .onDrag {
+                    let token = UUID()
+                    dragToken = token
                     draggedCard = card
+                    // この provider へのドロップイベントはまだ届いていない
+                    isDragActive = false
                     let provider = DragSessionItemProvider(object: card.id.uuidString as NSString)
                     provider.didEnd = {
                         Task { @MainActor in
+                            guard dragToken == token else { return }
                             draggedCard = nil
                             isDragActive = false
                         }
