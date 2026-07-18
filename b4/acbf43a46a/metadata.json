@@ -1,0 +1,28 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_version": "branch-v1",
+  "checkpoint_id": "b4acbf43a46a",
+  "strategy": "manual-commit",
+  "branch": "feat/live-reorder-animation",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Picton/Views/CardGridView.swift",
+    "Picton/Views/ContentView.swift"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b4/acbf43a46a/0/metadata.json",
+      "transcript": "/b4/acbf43a46a/0/full.jsonl",
+      "compact_transcript": "/b4/acbf43a46a/0/transcript.jsonl",
+      "content_hash": "/b4/acbf43a46a/0/content_hash.txt",
+      "prompt": "/b4/acbf43a46a/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 10331,
+    "cache_creation_tokens": 177603,
+    "cache_read_tokens": 3459163,
+    "output_tokens": 62867,
+    "api_call_count": 49
+  }
+}
