@@ -1,0 +1,25 @@
+{
+  "cli_version": "0.7.8",
+  "checkpoint_version": "branch-v1",
+  "checkpoint_id": "576d9e3f448c",
+  "strategy": "manual-commit",
+  "branch": "fix/sort-order-collision-on-add",
+  "checkpoints_count": 4,
+  "files_touched": null,
+  "sessions": [
+    {
+      "metadata": "/57/6d9e3f448c/0/metadata.json",
+      "transcript": "/57/6d9e3f448c/0/full.jsonl",
+      "compact_transcript": "/57/6d9e3f448c/0/transcript.jsonl",
+      "content_hash": "/57/6d9e3f448c/0/content_hash.txt",
+      "prompt": "/57/6d9e3f448c/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 21450,
+    "cache_creation_tokens": 1028644,
+    "cache_read_tokens": 25645856,
+    "output_tokens": 192459,
+    "api_call_count": 161
+  }
+}
