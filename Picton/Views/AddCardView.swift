@@ -93,7 +93,11 @@ struct AddCardView: View {
 
     private func saveCard() {
         let cardID = UUID()
-        let maxOrder = (try? modelContext.fetchCount(FetchDescriptor<PictureCard>())) ?? 0
+        let descriptor = FetchDescriptor<PictureCard>(
+            sortBy: [SortDescriptor(\PictureCard.sortOrder, order: .reverse)]
+        )
+        let existing = (try? modelContext.fetch(descriptor)) ?? []
+        let nextSortOrder = (existing.first?.sortOrder ?? -1) + 1
 
         if let image = selectedImage {
             _ = try? ImageStorageService.save(image: image, id: cardID)
@@ -105,7 +109,7 @@ struct AddCardView: View {
             kanaText: kanaText,
             category: selectedCategory,
             isPreset: false,
-            sortOrder: maxOrder
+            sortOrder: nextSortOrder
         )
         modelContext.insert(card)
         try? modelContext.save()
