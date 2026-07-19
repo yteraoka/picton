@@ -15,3 +15,7 @@ Merge して
 ---
 
 docs/improvements-2026-07-19.md の内容が不足なく GitHub Issue に登録済みであるならば commit しないで削除してください
+
+---
+
+GitHub Issue #33 の対策を実装して
