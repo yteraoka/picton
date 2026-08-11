@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- 本アプリはトラッキングを一切行わない -->
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<!--
+		収集するデータなし。
+		カメラ・写真ライブラリから取得した画像はアプリのサンドボックス内に
+		保存されるのみで、端末外へは一切送信しない。
+	-->
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<!--
+		Required Reason API の使用なし。
+		（UserDefaults / ファイルのタイムスタンプ / ディスク空き容量 /
+		 システム起動時刻 / アクティブなキーボード のいずれも未使用）
+		該当 API を使い始めた場合はここに理由コードを追加すること。
+	-->
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>
