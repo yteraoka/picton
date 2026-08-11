@@ -16,6 +16,7 @@ struct ContentView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var viewWidth: CGFloat = 0
     @State private var isHorizontalDrag = false
+    @State private var showVoiceUnavailableAlert = false
 
     var body: some View {
         NavigationStack {
@@ -150,6 +151,14 @@ struct ContentView: View {
         }
         .sheet(isPresented: $showDataManagement) {
             DataManagementView()
+        }
+        .onChange(of: ttsService.isJapaneseVoiceUnavailable) { _, unavailable in
+            if unavailable { showVoiceUnavailableAlert = true }
+        }
+        .alert("日本語の音声が見つかりません", isPresented: $showVoiceUnavailableAlert) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("読み上げには日本語の音声が必要です。\n\n設定 App → アクセシビリティ → 読み上げコンテンツ → 声 → 日本語 から音声を追加してください。")
         }
     }
 
