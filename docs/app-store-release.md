@@ -1,46 +1,149 @@
 # App Store 公開手順
 
+Picton を App Store で公開するための手順とチェックリスト。
+
+Picton は **サーバー通信・アカウント・アプリ内課金・サードパーティ SDK のいずれも持たない**
+完全オフラインアプリのため、一般的な iOS アプリで必要になる作業の多くが不要になる。
+
+| 一般的に必要な作業 | Picton での要否 |
+| --- | --- |
+| アカウント削除機能 (Guideline 5.1.1) | 不要（アカウント機能なし） |
+| App Tracking Transparency | 不要（トラッキングなし） |
+| StoreKit / 課金まわり | 不要 |
+| UGC の通報・ブロック機能 (Guideline 1.2) | 不要（他ユーザーとの共有機能なし） |
+| サードパーティ SDK のプライバシーマニフェスト | 不要（依存 SDK なし） |
+| 有料 App 契約・銀行口座・税務情報 | 無料配信なら不要 |
+
+---
+
 ## 1. Apple Developer Program への登録
 
-- [developer.apple.com](https://developer.apple.com) で年間 $99 の有料メンバーシップに登録
+- [developer.apple.com](https://developer.apple.com) で有料メンバーシップに登録（99 USD / 年）
+- 個人登録は数時間〜3日程度。**登録者の氏名がデベロッパ名として公開される**
+- 法人名で出す場合は D-U-N-S 番号が必要で 2〜4 週間かかる
+- Apple Account の 2 ファクタ認証は必須
 
-## 2. App Store Connect の設定
+## 2. ビルド環境の要件
+
+- **Xcode 26 以降 + iOS 26 SDK が必須**（2026-04-28 以降、それ未満のバイナリは
+  App Store Connect が受け付けない）
+- Deployment Target は iOS 17.0 のままでよい（ビルド SDK と実行最低バージョンは別）
+- iOS 26 SDK でビルドすると Liquid Glass が自動適用されるため、以下の見た目を確認する
+  - カテゴリタブ（`ContentView`）
+  - ツールバーの編集 / データ管理ボタン
+  - `AddCardView` / `EditCardView` / `DataManagementView` の sheet
+  - `fileImporter` と共有シート
+
+```sh
+xcodegen generate
+open Picton.xcodeproj
+```
+
+## 3. App Store Connect の設定
 
 - [appstoreconnect.apple.com](https://appstoreconnect.apple.com) でアプリを新規作成
-- Bundle ID を登録（Xcode のプロジェクト設定と一致させる）
-- アプリ名、説明文、キーワード、カテゴリを入力
-- スクリーンショットを用意（iPhone 6.5インチ、6.7インチなど必須サイズあり）
-- プライバシーポリシー URL を用意（外部 URL が必要）
+- Bundle ID: `com.yteraoka.Picton`
+- **カテゴリ**: 教育（プライマリ）/ メディカル（セカンダリ）
+  - App Store の「キッズ」カテゴリは選ばない方が無難。
+    外部リンクのペアレンタルゲートなど追加要件が発生し、カメラ利用と
+    ファイルのエクスポート/インポートがあるぶんレビューが厳しくなる。
+    実際の操作者は保護者・支援者であり、4+ レーティングで足りる
+- **年齢レーティング**: 新しい 5 段階（4+ / 9+ / 13+ / 16+ / 18+）の質問に回答する。
+  未回答だと提出自体がブロックされる
+- **App Privacy**: 「このAppはデータを収集しません」を選択。
+  カメラ・写真の権限を要求すること自体はデータ収集に該当しない（端末外に送らないため）
 
-## 3. Xcode でのビルド設定
+### 説明文で気をつけること
 
-- `Signing & Capabilities` で Team を Developer Account に設定
-- Bundle Identifier を App Store Connect と一致させる
-- バージョン番号とビルド番号を設定
-- `Any iOS Device` を選択して Archive ビルド
+「言葉の発達を促す」「訓練効果がある」といった **効果効能の主張は避ける**。
+Guideline 1.4.1 / 5.1.3 でエビデンスの提出を求められる可能性がある。
+AAC（拡大・代替コミュニケーション）ツールとしての機能を事実として記述する。
+
+### スクリーンショット
+
+`TARGETED_DEVICE_FAMILY = "1,2"`（iPhone + iPad）のため **両方必須**。
+
+| 対象 | サイズ | 必須 |
+| --- | --- | --- |
+| iPhone 6.9 インチ | 1320 × 2868 | 必須（最大10枚） |
+| iPad 13 インチ | 2064 × 2752 | **必須**（最大10枚） |
+
+大きいサイズを入れれば小さい画面向けは Apple が自動でスケーリングする。
+`docs/images/screenshot-1.png` は README 用なので、App Store 用に撮り直すこと。
+
+### 必要な URL
+
+- **プライバシーポリシー**（必須）: 「一切の個人情報を収集・送信しない。
+  カメラ・写真から取得した画像は端末内にのみ保存される」という内容で足りる
+- **サポート URL**（必須）
+
+## 4. ビルドと提出
 
 ```
-Product → Archive
+Product → Archive → Validate App → Distribute App → App Store Connect
 ```
 
-## 4. TestFlight での事前テスト（推奨）
+- `MARKETING_VERSION` と `CURRENT_PROJECT_VERSION` を設定。
+  **ビルド番号は再アップロードのたびに増やす**
+- TestFlight 内部テストで実機確認（特に iPad 横向きと日本語音声）
+- 審査は通常 1〜3 日。初回は長めに見ておく
 
-- Archive 後に `Distribute App` → `App Store Connect` でアップロード
-- TestFlight で実機テストを行い問題がないか確認
+## 5. リリース前チェックリスト
 
-## 5. 審査提出
+- [ ] Xcode 26 / iOS 26 SDK でアーカイブした
+- [ ] Liquid Glass 適用後の UI 崩れがない
+- [ ] **iPad Pro 13 インチの横向き**でレイアウトが破綻しない
+      （iPhone は Portrait 固定だが iPad は全 4 方向を許可している）
+- [ ] ダークモードで表示が破綻しない
+- [ ] Dynamic Type の最大サイズでカードのテキストが読める
+- [ ] VoiceOver で「カード選択 → 文エリア → 読み上げ」が完結する
+- [ ] 日本語音声が入っていない端末での挙動を確認した（案内アラートが出る）
+- [ ] カメラ・写真ライブラリの権限ダイアログの文言が具体的である
+- [ ] エクスポート → インポートの往復が別端末で成功する
+- [ ] プライバシーポリシー / サポートページを公開した
+- [ ] 年齢レーティングの質問に回答した
+- [ ] スクリーンショット（iPhone 6.9 / iPad 13）を用意した
 
-- App Store Connect でビルドを選択してレビューに提出
-- 審査には通常 1〜3 日かかる
+## 6. 審査メモ（App Review Information）に書く内容
 
-## 6. 審査でよく引っかかるポイント
+審査員が日本語音声の入っていない端末でテストして「音が出ない」と判断されるのが
+最大のリスクなので、以下をそのまま記入する。
 
-- **プライバシーポリシー**: 必須
-- **権限の説明**: カメラ・マイクなど使用する権限の `NSCameraUsageDescription` 等が適切か
-- **クラッシュ**: 審査中にクラッシュすると即リジェクト
-- **メタデータ**: スクリーンショットとアプリの実際の動作が一致しているか
+```
+【アプリ概要】
+発語に困難のある子どもが、絵カードをタップして文を組み立て、
+日本語音声で読み上げるコミュニケーション支援（AAC）アプリです。
+サーバー通信は一切なく、完全にオフラインで動作します。
 
-## このアプリ固有の確認事項
+【操作手順】
+1. 起動するとプリセットの絵カードが表示されます
+2. カードをタップすると画面上部の文エリアに追加されます
+3. ▶ ボタンで日本語音声による読み上げが始まります
+4. ＋ ボタンでカメラ/写真からオリジナルカードを作成できます
 
-- カメラ権限の `NSCameraUsageDescription` が `Info.plist` に記載されているか確認
-- 子供向けアプリの場合、年齢レーティングの設定に注意
+【音声が再生されない場合】
+本アプリは日本語(ja-JP)の音声合成を使用します。
+テスト端末に日本語音声が入っていない場合は、
+設定 → アクセシビリティ → 読み上げコンテンツ → 声 → 日本語
+から音声を追加してください。音量とサイレントモードもご確認ください。
+
+【アカウント】
+アカウント登録・ログイン機能はありません。デモアカウントは不要です。
+
+【データの取り扱い】
+ユーザーが作成した画像はアプリのサンドボックス内にのみ保存され、
+外部への送信や他ユーザーとの共有は行いません。
+```
+
+## 7. リリース後
+
+- 初回は「手動でリリース」にしておき、審査通過後に自分のタイミングで公開する
+- アップデートでは段階的リリース（7日）を使うと問題発生時の影響を抑えられる
+- **Apple Developer Program の年次更新を忘れない**。失効するとアプリが
+  App Store から削除される
+
+## 参考
+
+- [App Store Review Guidelines](https://developer.apple.com/app-store/review/guidelines/)
+- [Upcoming Requirements](https://developer.apple.com/news/upcoming-requirements/)
+- [スクリーンショット仕様](https://developer.apple.com/help/app-store-connect/reference/screenshot-specifications/)
