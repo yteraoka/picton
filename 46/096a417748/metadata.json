@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.13.2",
+  "checkpoint_id": "46096a417748",
+  "strategy": "manual-commit",
+  "branch": "fix/zip-parse-bounds-check",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Picton/Services/CardExportImportService.swift"
+  ],
+  "sessions": [
+    {
+      "metadata": "/46/096a417748/0/metadata.json",
+      "transcript": "/46/096a417748/0/full.jsonl",
+      "compact_transcript": "/46/096a417748/0/transcript.jsonl",
+      "content_hash": "/46/096a417748/0/content_hash.txt",
+      "prompt": "/46/096a417748/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 38,
+    "cache_creation_tokens": 41938,
+    "cache_read_tokens": 949287,
+    "output_tokens": 11624,
+    "api_call_count": 18
+  },
+  "redaction": {
+    "replacements": 15,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 15,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
