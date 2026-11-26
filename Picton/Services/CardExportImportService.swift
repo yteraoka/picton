@@ -237,30 +237,38 @@ enum CardExportImportService {
 
     // MARK: - ZIP Parsing
 
+    /// ローカルファイルヘッダの固定長部分のサイズ
+    private static let localFileHeaderSize = 30
+
     /// 非圧縮 ZIP をパースしてエントリ一覧を返す
+    ///
+    /// 外部から受け取ったファイルを扱うため、すべての読み取りで範囲を検証し、
+    /// 不正・破損した入力に対してはクラッシュせず `invalidZip` を投げる。
     private static func parseZip(data: Data) throws -> [ZipEntry] {
         var entries: [ZipEntry] = []
         var offset = 0
 
-        while offset + 4 <= data.count {
-            let signature = data.readUInt32(at: offset)
-            guard signature == 0x04034b50 else { break }
+        while let signature = data.readUInt32(at: offset), signature == 0x04034b50 {
+            guard offset + localFileHeaderSize <= data.count,
+                  let crc = data.readUInt32(at: offset + 14),
+                  let compressedSize = data.readUInt32(at: offset + 18),
+                  let nameLength = data.readUInt16(at: offset + 26),
+                  let extraLength = data.readUInt16(at: offset + 28)
+            else { throw ExportImportError.invalidZip }
 
-            let nameLength = Int(data.readUInt16(at: offset + 26))
-            let extraLength = Int(data.readUInt16(at: offset + 28))
-            let compressedSize = Int(data.readUInt32(at: offset + 18))
+            let nameStart = offset + localFileHeaderSize
+            let nameEnd = nameStart + Int(nameLength)
+            let dataStart = nameEnd + Int(extraLength)
+            let dataEnd = dataStart + Int(compressedSize)
+            guard dataEnd <= data.count,
+                  let nameData = data.slice(from: nameStart, to: nameEnd),
+                  let fileData = data.slice(from: dataStart, to: dataEnd)
+            else { throw ExportImportError.invalidZip }
 
-            let nameStart = offset + 30
-            let nameEnd = nameStart + nameLength
-            guard nameEnd <= data.count else { throw ExportImportError.invalidZip }
-            let nameData = data[nameStart..<nameEnd]
+            // 破損ファイルや非対応の圧縮形式（deflate など）はここで弾かれる
+            guard crc32(fileData) == crc else { throw ExportImportError.invalidZip }
+
             let name = String(data: nameData, encoding: .utf8) ?? ""
-
-            let dataStart = nameEnd + extraLength
-            let dataEnd = dataStart + compressedSize
-            guard dataEnd <= data.count else { throw ExportImportError.invalidZip }
-            let fileData = Data(data[dataStart..<dataEnd])
-
             entries.append(ZipEntry(name: name, data: fileData))
             offset = dataEnd
         }
@@ -270,17 +278,18 @@ enum CardExportImportService {
 
     // MARK: - CRC-32
 
+    private static let crc32Table: [UInt32] = (0..<256).map { i -> UInt32 in
+        var c = UInt32(i)
+        for _ in 0..<8 {
+            c = (c & 1 == 1) ? (c >> 1) ^ 0xEDB88320 : c >> 1
+        }
+        return c
+    }
+
     private static func crc32(_ data: Data) -> UInt32 {
         var crc: UInt32 = 0xFFFFFFFF
         for byte in data {
-            crc ^= UInt32(byte)
-            for _ in 0..<8 {
-                if crc & 1 == 1 {
-                    crc = (crc >> 1) ^ 0xEDB88320
-                } else {
-                    crc >>= 1
-                }
-            }
+            crc = crc32Table[Int((crc ^ UInt32(byte)) & 0xFF)] ^ (crc >> 8)
         }
         return crc ^ 0xFFFFFFFF
     }
@@ -290,20 +299,33 @@ enum CardExportImportService {
 
 private extension Data {
     mutating func appendUInt16(_ value: UInt16) {
-        var v = value.littleEndian
-        append(UnsafeBufferPointer(start: &v, count: 1))
+        Swift.withUnsafeBytes(of: value.littleEndian) { append(contentsOf: $0) }
     }
 
     mutating func appendUInt32(_ value: UInt32) {
-        var v = value.littleEndian
-        append(UnsafeBufferPointer(start: &v, count: 1))
+        Swift.withUnsafeBytes(of: value.littleEndian) { append(contentsOf: $0) }
     }
 
-    func readUInt16(at offset: Int) -> UInt16 {
-        subdata(in: offset..<offset + 2).withUnsafeBytes { UInt16(littleEndian: $0.load(as: UInt16.self)) }
+    /// 先頭からの相対オフセット `[from, to)` を切り出す。範囲外なら nil
+    func slice(from start: Int, to end: Int) -> Data? {
+        guard start >= 0, start <= end, end <= count else { return nil }
+        return Data(self[(startIndex + start)..<(startIndex + end)])
     }
 
-    func readUInt32(at offset: Int) -> UInt32 {
-        subdata(in: offset..<offset + 4).withUnsafeBytes { UInt32(littleEndian: $0.load(as: UInt32.self)) }
+    /// 先頭からの相対オフセットにある little-endian の UInt16 を読む。範囲外なら nil
+    func readUInt16(at offset: Int) -> UInt16? {
+        guard offset >= 0, offset + 2 <= count else { return nil }
+        let i = startIndex + offset
+        return UInt16(self[i]) | UInt16(self[i + 1]) << 8
+    }
+
+    /// 先頭からの相対オフセットにある little-endian の UInt32 を読む。範囲外なら nil
+    func readUInt32(at offset: Int) -> UInt32? {
+        guard offset >= 0, offset + 4 <= count else { return nil }
+        let i = startIndex + offset
+        return UInt32(self[i])
+            | UInt32(self[i + 1]) << 8
+            | UInt32(self[i + 2]) << 16
+            | UInt32(self[i + 3]) << 24
     }
 }
