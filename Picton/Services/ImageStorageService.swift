@@ -153,7 +153,8 @@ enum ImageStorageService {
     }
 
     /// 元画像を丸ごと展開しないよう、ImageIO を直接使う
-    private static let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
+    /// CFDictionary は Sendable ではないため、static let で共有せず毎回作る (#62)
+    private static var sourceOptions: CFDictionary { [kCGImageSourceShouldCache: false] as CFDictionary }
 
     /// 画像のピクセル数を確認してから、長辺が `maxPixelSize` 以下になるよう縮小デコードする
     ///

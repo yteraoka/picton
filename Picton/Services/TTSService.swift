@@ -6,9 +6,15 @@ private let logger = Logger(
     category: "TTSService"
 )
 
+/// 読み上げサービス
+///
+/// 状態（isSpeaking など）は UI から読むため、メインアクターに隔離する。
+/// AVSpeechSynthesizer のデリゲートはどのスレッドから呼ばれるか決まっていないので、
+/// `nonisolated` で受けてメインアクターに移ってから状態を更新する (#62)。
+@MainActor
 @Observable
-final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendable {
-    private nonisolated(unsafe) let synthesizer = AVSpeechSynthesizer()
+final class TTSService: NSObject, AVSpeechSynthesizerDelegate {
+    private let synthesizer = AVSpeechSynthesizer()
     var isSpeaking = false
 
     /// 日本語音声が端末に用意されておらず読み上げできなかった場合に true。
@@ -25,7 +31,6 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
     /// 最後に読み上げを開始した utterance。
     /// 前の読み上げを止めて次を始めると、前の utterance の didCancel が
     /// 新しい読み上げの開始後に届くため、それを無視するために使う (#59)。
-    /// メインスレッドからのみ触る。
     @ObservationIgnored private var utterances = UtteranceTracker<AVSpeechUtterance>()
 
     init(isEnabled: Bool = !Constants.isUITesting) {
@@ -109,24 +114,30 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
 
     // MARK: - AVSpeechSynthesizerDelegate
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            guard self.utterances.isCurrent(utterance) else { return }
+    // utterance（Sendable ではない）そのものはメインアクターに渡さず、識別子だけを渡す。
+    // 通知の順序が前後しても、トラッカーが最後に開始した utterance 以外を無視するので安全。
+
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
+        let id = ObjectIdentifier(utterance)
+        Task { @MainActor [weak self] in
+            guard let self, self.utterances.isCurrent(id) else { return }
             self.isSpeaking = true
         }
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async { self.handleEnd(of: utterance) }
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
+        let id = ObjectIdentifier(utterance)
+        Task { @MainActor [weak self] in self?.handleEnd(of: id) }
     }
 
-    func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async { self.handleEnd(of: utterance) }
+    nonisolated func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
+        let id = ObjectIdentifier(utterance)
+        Task { @MainActor [weak self] in self?.handleEnd(of: id) }
     }
 
     /// 読み上げの完了・キャンセル時の後始末。
     /// 既に次の読み上げを始めている場合（古い utterance の通知）は何もしない。
-    private func handleEnd(of utterance: AVSpeechUtterance) {
+    private func handleEnd(of utterance: ObjectIdentifier) {
         guard utterances.end(utterance) else { return }
         isSpeaking = false
         deactivateAudioSession()
@@ -147,13 +158,26 @@ struct UtteranceTracker<Item: AnyObject> {
 
     /// `item` が最後に開始した読み上げか
     func isCurrent(_ item: Item) -> Bool {
-        current === item
+        isCurrent(ObjectIdentifier(item))
+    }
+
+    /// 識別子が `id` の読み上げが、最後に開始した読み上げか
+    ///
+    /// `current` を強参照で保持しているので、同じ識別子を持つ別のオブジェクトと取り違えることはない。
+    func isCurrent(_ id: ObjectIdentifier) -> Bool {
+        guard let current else { return false }
+        return ObjectIdentifier(current) == id
     }
 
     /// `item` の読み上げが終わった。最後に開始した読み上げなら追跡を終えて true を返す。
     /// 古い読み上げの通知なら何もせず false を返す。
     mutating func end(_ item: Item) -> Bool {
-        guard isCurrent(item) else { return false }
+        end(ObjectIdentifier(item))
+    }
+
+    /// 識別子が `id` の読み上げが終わった（`end(_ item:)` と同じ）
+    mutating func end(_ id: ObjectIdentifier) -> Bool {
+        guard isCurrent(id) else { return false }
         current = nil
         return true
     }

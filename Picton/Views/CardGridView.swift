@@ -72,15 +72,11 @@ struct CardGridView<Header: View>: View {
                     draggedCard = card
                     // この provider へのドロップイベントはまだ届いていない
                     isDragActive = false
-                    let provider = DragSessionItemProvider(object: card.id.uuidString as NSString)
-                    provider.didEnd = {
-                        Task { @MainActor in
-                            guard dragToken == token else { return }
-                            draggedCard = nil
-                            isDragActive = false
-                        }
+                    return DragSessionItemProvider(cardID: card.id) {
+                        guard dragToken == token else { return }
+                        draggedCard = nil
+                        isDragActive = false
                     }
-                    return provider
                 }
                 .onDrop(of: [.text], delegate: CardReorderDropDelegate(
                     card: card,
@@ -146,9 +142,22 @@ extension CardGridView where Header == EmptyView {
 /// ドラッグセッションの終了（画面外ドロップやキャンセルを含む）を検知するための NSItemProvider
 /// SwiftUI にはドラッグ終了のコールバックがないため、システムがセッション終了時に
 /// provider を解放することを利用して後始末する
+///
+/// 解放（deinit）はどのスレッドで起きるか決まっていないため、後始末はメインアクターで実行する (#62)。
 private final class DragSessionItemProvider: NSItemProvider {
-    var didEnd: (() -> Void)?
-    deinit { didEnd?() }
+    private let onEnd: @MainActor () -> Void
+
+    init(cardID: UUID, onEnd: @escaping @MainActor () -> Void) {
+        self.onEnd = onEnd
+        super.init()
+        // NSItemProvider(object:) と同じく、カード ID を文字列として渡す
+        registerObject(cardID.uuidString as NSString, visibility: .all)
+    }
+
+    deinit {
+        let onEnd = onEnd
+        Task { @MainActor in onEnd() }
+    }
 }
 
 /// ドラッグ中にカードへ重なった時点でリアルタイムに並べ替える DropDelegate

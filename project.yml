@@ -28,6 +28,8 @@ targets:
         # App Store Connect へのアップロードのたびに輸出コンプライアンスを聞かれなくなる
         INFOPLIST_KEY_ITSAppUsesNonExemptEncryption: NO
         SWIFT_VERSION: "5.9"
+        # Swift 6 への移行準備として、並行処理の安全性をすべて検査する (#62)
+        SWIFT_STRICT_CONCURRENCY: complete
         MARKETING_VERSION: "1.0.0"
         CURRENT_PROJECT_VERSION: 1
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
@@ -50,6 +52,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: me.teraoka.PictonTests
         DEVELOPMENT_TEAM: H6KG946X5L
         SWIFT_VERSION: "5.9"
+        SWIFT_STRICT_CONCURRENCY: complete
 
   PictonUITests:
     type: bundle.ui-testing
