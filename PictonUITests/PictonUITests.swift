@@ -99,4 +99,39 @@ final class PictonUITests: XCTestCase {
         XCTAssertTrue(app.buttons["編集モード"].waitForExistence(timeout: 3))
         XCTAssertLessThan(card("電車").frame.minX, card("くるま").frame.minX, "編集モード終了後も並び順が保たれる")
     }
+
+    /// #75: 「いつ」カテゴリで追加したカスタムカードが「いつ」タブに表示され、文に追加できる
+    func testCustomCardInWhenCategory() {
+        selectCategory("いつ", expecting: "きょう")
+        app.buttons["編集モード"].tap()
+        XCTAssertTrue(app.buttons["編集モード終了"].waitForExistence(timeout: 3))
+
+        // 編集モード中は日付カードを押しても文に追加されない
+        card("きょう").tap()
+        XCTAssertFalse(app.buttons["きょうを削除"].waitForExistence(timeout: 1))
+
+        // 「いつ」タブの「追加」から作ると、カテゴリの初期値が「いつ」になる
+        let add = app.buttons["カードを追加"]
+        XCTAssertTrue(add.waitForExistence(timeout: 3))
+        add.tap()
+        let name = app.textFields["表示名 (例: 公園)"]
+        XCTAssertTrue(name.waitForExistence(timeout: 5))
+        name.tap()
+        name.typeText("らいしゅう")
+        let kana = app.textFields["読みがな (例: こうえん)"]
+        kana.tap()
+        kana.typeText("らいしゅう")
+        app.buttons["保存"].tap()
+
+        XCTAssertTrue(waitForCardToSettle("らいしゅう"), "追加したカードが「いつ」タブに表示されない")
+
+        app.buttons["編集モード終了"].tap()
+        XCTAssertTrue(app.buttons["編集モード"].waitForExistence(timeout: 3))
+        card("らいしゅう").tap()
+        XCTAssertTrue(app.buttons["らいしゅうを削除"].waitForExistence(timeout: 3))
+
+        // 日付カードも引き続き使える
+        card("きょう").tap()
+        XCTAssertTrue(app.buttons["きょうを削除"].waitForExistence(timeout: 3))
+    }
 }

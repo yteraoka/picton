@@ -8,12 +8,19 @@ struct AddCardView: View {
 
     @State private var displayName = ""
     @State private var kanaText = ""
-    @State private var selectedCategory = "場所"
+    @State private var selectedCategory: String
     @State private var selectedImage: UIImage?
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var showCamera = false
 
     let categories = Constants.allCategories
+
+    /// - Parameter initialCategory: カテゴリの初期値。一覧にないものなら「場所」
+    init(initialCategory: String = "場所") {
+        _selectedCategory = State(
+            initialValue: Constants.allCategories.contains(initialCategory) ? initialCategory : "場所"
+        )
+    }
 
     var body: some View {
         NavigationStack {
