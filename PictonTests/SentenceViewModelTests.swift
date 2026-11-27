@@ -151,6 +151,8 @@ struct SentenceViewModelTests {
 // 専用のテストファイルを追加するには xcodegen での再生成が必要なため、ここに置く。
 @Suite("UtteranceTracker")
 struct UtteranceTrackerTests {
+    // #expect は式を分解してレシーバを不変値として評価するため、
+    // mutating な end(_:) は結果を変数に受けてから検査する
     private final class Utterance {}
 
     @Test func endOfCurrentUtteranceFinishesTracking() {
@@ -158,7 +160,8 @@ struct UtteranceTrackerTests {
         let a = Utterance()
         tracker.begin(a)
         #expect(tracker.isCurrent(a))
-        #expect(tracker.end(a))
+        let ended = tracker.end(a)
+        #expect(ended)
         #expect(tracker.current == nil)
     }
 
@@ -170,23 +173,28 @@ struct UtteranceTrackerTests {
         tracker.begin(b)
 
         #expect(!tracker.isCurrent(a))
-        #expect(!tracker.end(a))
+        let endedA = tracker.end(a)
+        #expect(!endedA)
         #expect(tracker.current === b)
 
-        #expect(tracker.end(b))
+        let endedB = tracker.end(b)
+        #expect(endedB)
         #expect(tracker.current == nil)
     }
 
     @Test func endIsIgnoredWhenNothingIsTracked() {
         var tracker = UtteranceTracker<Utterance>()
-        #expect(!tracker.end(Utterance()))
+        let ended = tracker.end(Utterance())
+        #expect(!ended)
     }
 
     @Test func secondEndOfSameUtteranceIsIgnored() {
         var tracker = UtteranceTracker<Utterance>()
         let a = Utterance()
         tracker.begin(a)
-        #expect(tracker.end(a))
-        #expect(!tracker.end(a))
+        let first = tracker.end(a)
+        let second = tracker.end(a)
+        #expect(first)
+        #expect(!second)
     }
 }
