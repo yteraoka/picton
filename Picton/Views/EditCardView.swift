@@ -61,13 +61,7 @@ struct EditCardView: View {
                                 }
                                 .buttonStyle(.bordered)
 
-                                Button {
-                                    showCamera = true
-                                } label: {
-                                    Label("カメラで撮る", systemImage: "camera")
-                                        .frame(maxWidth: .infinity)
-                                }
-                                .buttonStyle(.bordered)
+                                CameraButton(showCamera: $showCamera)
                             }
                         }
                     }
