@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.13.4",
+  "checkpoint_id": "0240b3e92599",
+  "strategy": "manual-commit",
+  "branch": "fix/aspect-fill-card-image",
+  "checkpoints_count": 3,
+  "files_touched": [
+    "Picton/Services/ImageStorageService.swift",
+    "PictonTests/ImageStorageServiceTests.swift",
+    "PictonTests/TestImages.swift"
+  ],
+  "sessions": [
+    {
+      "metadata": "/02/40b3e92599/0/metadata.json",
+      "transcript": "/02/40b3e92599/0/full.jsonl",
+      "compact_transcript": "/02/40b3e92599/0/transcript.jsonl",
+      "content_hash": "/02/40b3e92599/0/content_hash.txt",
+      "prompt": "/02/40b3e92599/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 52,
+    "cache_creation_tokens": 25992,
+    "cache_read_tokens": 3315611,
+    "output_tokens": 15640,
+    "api_call_count": 23
+  },
+  "redaction": {
+    "replacements": 149,
+    "layers": {
+      "betterleaks": 8,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 141,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
