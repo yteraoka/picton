@@ -1,0 +1,41 @@
+{
+  "cli_version": "0.13.4",
+  "checkpoint_id": "807c34e25e0b",
+  "strategy": "manual-commit",
+  "branch": "feat/tests-and-ci",
+  "checkpoints_count": 1,
+  "files_touched": [
+    ".github/workflows/ci.yml",
+    "README.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/80/7c34e25e0b/0/metadata.json",
+      "transcript": "/80/7c34e25e0b/0/full.jsonl",
+      "compact_transcript": "/80/7c34e25e0b/0/transcript.jsonl",
+      "content_hash": "/80/7c34e25e0b/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 8,
+    "cache_creation_tokens": 6826,
+    "cache_read_tokens": 667028,
+    "output_tokens": 4791,
+    "api_call_count": 4
+  },
+  "redaction": {
+    "replacements": 81,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 81,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
