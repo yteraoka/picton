@@ -64,7 +64,7 @@ open -a Simulator
 # アプリをインストール & 起動
 xcrun simctl install "iPhone 17 Pro" \
   build/Build/Products/Debug-iphonesimulator/Picton.app
-xcrun simctl launch "iPhone 17 Pro" com.yteraoka.Picton
+xcrun simctl launch "iPhone 17 Pro" me.teraoka.Picton
 ```
 
 > **Note:** シミュレータ名は `xcrun simctl list devices available` で確認できます。
@@ -85,7 +85,9 @@ Xcode で署名用のアカウントを設定します。
 3. **Signing & Capabilities** タブを開く
 4. **Automatically manage signing** にチェック
 5. **Team** のドロップダウンから自分の Apple ID（`Personal Team`）を選択
-6. **Bundle Identifier** が重複エラーになる場合は `com.yteraoka.Picton` を一意の値に変更
+6. **Bundle Identifier** が重複エラーになる場合は `me.teraoka.Picton` を一意の値に変更
+
+> **Note:** Team と Bundle Identifier は `project.yml` で管理しています。自分のチームで恒久的に変えたい場合は `project.yml` の `DEVELOPMENT_TEAM` / `PRODUCT_BUNDLE_IDENTIFIER` を書き換えて `xcodegen generate` してください。
 
 #### 3. iPhone を接続してビルド
 

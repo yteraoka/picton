@@ -42,7 +42,7 @@ open Picton.xcodeproj
 ## 3. App Store Connect の設定
 
 - [appstoreconnect.apple.com](https://appstoreconnect.apple.com) でアプリを新規作成
-- Bundle ID: `com.yteraoka.Picton`
+- Bundle ID: `me.teraoka.Picton`
 - **カテゴリ**: 教育（プライマリ）/ メディカル（セカンダリ）
   - App Store の「キッズ」カテゴリは選ばない方が無難。
     外部リンクのペアレンタルゲートなど追加要件が発生し、カメラ利用と
