@@ -24,5 +24,10 @@ enum Constants {
         return docs.appendingPathComponent("CustomCardImages", isDirectory: true)
     }
 
+    /// UI テスト（起動引数 `--uitesting`）で起動されているか
+    ///
+    /// UI テストではインメモリストアを使い、読み上げ（音声合成・オーディオセッション）を無効にする。
+    static let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
+
     static let allCategories = ["いつ", "手段", "場所", "動作", "食べ物", "人", "生活", "気持ち"]
 }

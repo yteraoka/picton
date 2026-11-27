@@ -8,7 +8,7 @@ struct PictonApp: App {
     init() {
         do {
             // UI テストでは毎回まっさらな状態から始めるため、メモリ上のストアを使う
-            if ProcessInfo.processInfo.arguments.contains("--uitesting") {
+            if Constants.isUITesting {
                 container = try ModelContainer(
                     for: PictureCard.self,
                     configurations: ModelConfiguration(isStoredInMemoryOnly: true)
