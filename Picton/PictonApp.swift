@@ -9,6 +9,8 @@ struct PictonApp: App {
         do {
             container = try ModelContainer(for: PictureCard.self)
             PresetImageBootstrapper.bootstrapIfNeeded(context: container.mainContext)
+            ImageStorageService.applyCompleteFileProtection()
+            CardExportImportService.cleanUpExportDirectory()
         } catch {
             fatalError("Failed to create ModelContainer: \(error)")
         }
