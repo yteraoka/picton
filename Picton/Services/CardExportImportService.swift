@@ -95,7 +95,7 @@ enum CardExportImportService {
     }
 
     /// `picton_cards_20261126_153045.zip` 形式のファイル名
-    private static func exportFileName(date: Date) -> String {
+    static func exportFileName(date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
         formatter.locale = Locale(identifier: "en_US_POSIX")
@@ -183,13 +183,13 @@ enum CardExportImportService {
 
     // MARK: - ZIP Construction (store / no compression)
 
-    private struct ZipEntry {
+    struct ZipEntry {
         let name: String
         let data: Data
     }
 
     /// 非圧縮 ZIP を構築
-    private static func buildZip(entries: [(name: String, data: Data)]) -> Data {
+    static func buildZip(entries: [(name: String, data: Data)]) -> Data {
         var localHeaders = Data()
         var centralDirectory = Data()
         var offsets: [UInt32] = []
@@ -269,7 +269,7 @@ enum CardExportImportService {
     ///
     /// 外部から受け取ったファイルを扱うため、すべての読み取りで範囲を検証し、
     /// 不正・破損した入力に対してはクラッシュせず `invalidZip` を投げる。
-    private static func parseZip(data: Data) throws -> [ZipEntry] {
+    static func parseZip(data: Data) throws -> [ZipEntry] {
         var entries: [ZipEntry] = []
         var offset = 0
 
@@ -311,7 +311,7 @@ enum CardExportImportService {
         return c
     }
 
-    private static func crc32(_ data: Data) -> UInt32 {
+    static func crc32(_ data: Data) -> UInt32 {
         var crc: UInt32 = 0xFFFFFFFF
         for byte in data {
             crc = crc32Table[Int((crc ^ UInt32(byte)) & 0xFF)] ^ (crc >> 8)
