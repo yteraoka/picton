@@ -117,8 +117,15 @@ enum CardExportImportService {
 
     // MARK: - Import
 
-    /// ZIP ファイルからカスタムカードをインポートし、追加したカード数を返す
-    static func importCards(from zipURL: URL, context: ModelContext) throws -> Int {
+    struct ImportResult: Equatable {
+        /// 追加したカード数
+        let importedCount: Int
+        /// 画像として読めない・大きすぎるため、画像なしで取り込んだカード数
+        let skippedImageCount: Int
+    }
+
+    /// ZIP ファイルからカスタムカードをインポートする
+    static func importCards(from zipURL: URL, context: ModelContext) throws -> ImportResult {
         let accessing = zipURL.startAccessingSecurityScopedResource()
         defer {
             if accessing { zipURL.stopAccessingSecurityScopedResource() }
@@ -154,6 +161,7 @@ enum CardExportImportService {
         }
 
         var importedCount = 0
+        var skippedImageCount = 0
         for exportCard in payload.cards {
             let newID = UUID()
             let card = PictureCard(
@@ -168,17 +176,23 @@ enum CardExportImportService {
             context.insert(card)
             nextSortOrder += 1
 
-            // 画像を新 UUID でコピー
+            // 画像を新 UUID で保存する。ZIP の中身は外部から来たデータなので、
+            // 画像として検証・縮小デコードしてから JPEG に再エンコードする（メタデータも除去される）。
+            // 読めない・大きすぎる画像は、カード自体は取り込んで画像なしとして扱う
             if exportCard.hasImage, let origFileName = exportCard.imageFileName,
                let imageData = imageLookup[origFileName] {
-                try ImageStorageService.write(imageData: imageData, id: newID)
+                if let image = ImageStorageService.sanitizedImage(from: imageData) {
+                    try ImageStorageService.save(image: image, id: newID)
+                } else {
+                    skippedImageCount += 1
+                }
             }
 
             importedCount += 1
         }
 
         try context.save()
-        return importedCount
+        return ImportResult(importedCount: importedCount, skippedImageCount: skippedImageCount)
     }
 
     // MARK: - ZIP Construction (store / no compression)
