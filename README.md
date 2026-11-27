@@ -36,6 +36,8 @@ brew install xcodegen
 xcodegen generate
 ```
 
+> **Note:** `Picton.xcodeproj` は `project.yml` から生成したものをコミットしています。ターゲットやビルド設定、ファイルの追加・削除は `project.yml` を編集して `xcodegen generate` してください（`project.pbxproj` を直接編集しない）。CI で両者が一致しているかを検査しています。
+
 ## 実行方法
 
 ### 方法1: Xcode から実行（推奨）
@@ -64,7 +66,7 @@ open -a Simulator
 # アプリをインストール & 起動
 xcrun simctl install "iPhone 17 Pro" \
   build/Build/Products/Debug-iphonesimulator/Picton.app
-xcrun simctl launch "iPhone 17 Pro" com.yteraoka.Picton
+xcrun simctl launch "iPhone 17 Pro" me.teraoka.Picton
 ```
 
 > **Note:** シミュレータ名は `xcrun simctl list devices available` で確認できます。
@@ -85,7 +87,9 @@ Xcode で署名用のアカウントを設定します。
 3. **Signing & Capabilities** タブを開く
 4. **Automatically manage signing** にチェック
 5. **Team** のドロップダウンから自分の Apple ID（`Personal Team`）を選択
-6. **Bundle Identifier** が重複エラーになる場合は `com.yteraoka.Picton` を一意の値に変更
+6. **Bundle Identifier** が重複エラーになる場合は `me.teraoka.Picton` を一意の値に変更
+
+> **Note:** Team と Bundle Identifier は `project.yml` で管理しています。自分のチームで恒久的に変えたい場合は `project.yml` の `DEVELOPMENT_TEAM` / `PRODUCT_BUNDLE_IDENTIFIER` を書き換えて `xcodegen generate` してください。
 
 #### 3. iPhone を接続してビルド
 
@@ -113,6 +117,24 @@ Xcode で署名用のアカウントを設定します。
 | App Store 配布 | 不可 | 可能 |
 
 無料の Apple ID でも開発・テスト目的での実機インストールは問題なくできますが、7日ごとに Xcode から再インストールが必要です。
+
+## テスト
+
+```bash
+# ユニットテスト（Swift Testing）
+xcodebuild test -project Picton.xcodeproj -scheme Picton \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -only-testing:PictonTests
+
+# UI テスト（XCTest）
+xcodebuild test -project Picton.xcodeproj -scheme Picton \
+  -destination 'platform=iOS Simulator,name=iPhone 17 Pro' \
+  -only-testing:PictonUITests -parallel-testing-enabled NO
+```
+
+- UI テストは起動引数 `--uitesting` でアプリをインメモリストアで起動するため、シミュレータ上の既存データには影響しません
+- Pull Request と main への push では GitHub Actions（`.github/workflows/ci.yml`）で
+  `project.pbxproj` の生成チェック、ビルド、ユニットテスト、UI テストを実行します
 
 ## 使い方
 
@@ -154,8 +176,11 @@ Picton/
 │   └── CardExportImportService.swift # ZIP形式エクスポート/インポート
 ├── Utilities/
 │   ├── Constants.swift             # 定数定義
+│   ├── JapaneseHolidayChecker.swift # 日本の祝日計算
 │   └── PresetImageBootstrapper.swift # 初回起動時プリセット投入
 └── Assets.xcassets/
+PictonTests/                        # ユニットテスト（Swift Testing）
+PictonUITests/                      # UI テスト（XCTest）
 ```
 
 ## 技術スタック
