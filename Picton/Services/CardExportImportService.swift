@@ -78,13 +78,41 @@ enum CardExportImportService {
             entries: [("cards.json", jsonData)] + imageEntries
         )
 
-        let tmpDir = FileManager.default.temporaryDirectory
-            .appendingPathComponent("PictonExport", isDirectory: true)
-        try FileManager.default.createDirectory(at: tmpDir, withIntermediateDirectories: true)
+        // 前回のエクスポートが残っていれば消してから書き出す
+        cleanUpExportDirectory()
+        try FileManager.default.createDirectory(at: exportDirectory, withIntermediateDirectories: true)
 
-        let zipURL = tmpDir.appendingPathComponent("picton_cards_export.zip")
-        try zipData.write(to: zipURL)
+        // 受け取り側で上書きされないようファイル名に日時を含める
+        let zipURL = exportDirectory.appendingPathComponent(exportFileName(date: payload.exportedAt))
+        try zipData.write(to: zipURL, options: [.atomic, .completeFileProtection])
         return zipURL
+    }
+
+    /// エクスポート ZIP の一時置き場
+    private static var exportDirectory: URL {
+        FileManager.default.temporaryDirectory
+            .appendingPathComponent("PictonExport", isDirectory: true)
+    }
+
+    /// `picton_cards_20261126_153045.zip` 形式のファイル名
+    private static func exportFileName(date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd_HHmmss"
+        return "picton_cards_\(formatter.string(from: date)).zip"
+    }
+
+    /// エクスポートした ZIP を削除する
+    ///
+    /// ZIP にはカスタムカードの写真一式が入るため、共有が終わったら tmp に残さない。
+    static func removeExportedFile(at url: URL) {
+        try? FileManager.default.removeItem(at: url)
+    }
+
+    /// エクスポート用の一時ディレクトリを丸ごと削除する（起動時・次回エクスポート前）
+    static func cleanUpExportDirectory() {
+        try? FileManager.default.removeItem(at: exportDirectory)
     }
 
     // MARK: - Import
@@ -143,10 +171,7 @@ enum CardExportImportService {
             // 画像を新 UUID でコピー
             if exportCard.hasImage, let origFileName = exportCard.imageFileName,
                let imageData = imageLookup[origFileName] {
-                let destDir = Constants.customImageDirectory
-                try FileManager.default.createDirectory(at: destDir, withIntermediateDirectories: true)
-                let destURL = destDir.appendingPathComponent("\(newID.uuidString).jpg")
-                try imageData.write(to: destURL)
+                try ImageStorageService.write(imageData: imageData, id: newID)
             }
 
             importedCount += 1

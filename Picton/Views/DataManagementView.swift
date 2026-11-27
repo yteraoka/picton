@@ -58,9 +58,13 @@ struct DataManagementView: View {
                     Button("閉じる") { dismiss() }
                 }
             }
-            .sheet(isPresented: $isExporting) {
+            .sheet(isPresented: $isExporting, onDismiss: removeExportedFile) {
                 if let url = exportURL {
-                    ShareSheet(url: url)
+                    ShareSheet(url: url) {
+                        // 共有完了・キャンセルのどちらでも呼ばれる
+                        isExporting = false
+                        removeExportedFile()
+                    }
                 }
             }
             .fileImporter(
@@ -94,6 +98,13 @@ struct DataManagementView: View {
         }
     }
 
+    /// 共有シートを閉じたらエクスポート ZIP を tmp に残さない
+    private func removeExportedFile() {
+        guard let url = exportURL else { return }
+        CardExportImportService.removeExportedFile(at: url)
+        exportURL = nil
+    }
+
     private func performImport(url: URL) {
         do {
             let count = try CardExportImportService.importCards(from: url, context: modelContext)
@@ -109,9 +120,15 @@ struct DataManagementView: View {
 /// UIActivityViewController を SwiftUI から呼び出すラッパー
 private struct ShareSheet: UIViewControllerRepresentable {
     let url: URL
+    var onComplete: () -> Void = {}
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        let controller = UIActivityViewController(activityItems: [url], applicationActivities: nil)
+        // 共有シートが閉じた後に呼ばれる（完了・キャンセルとも）
+        controller.completionWithItemsHandler = { _, _, _, _ in
+            onComplete()
+        }
+        return controller
     }
 
     func updateUIViewController(_ uiViewController: UIActivityViewController, context: Context) {}
