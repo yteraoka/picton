@@ -35,3 +35,46 @@ final class PictureCard: Identifiable {
         self.isHidden = isHidden
     }
 }
+
+/// カードの表示・読み上げに必要な情報だけを持つ値型スナップショット。
+///
+/// 文エリアなど、SwiftData の `@Model` オブジェクトの寿命と切り離して
+/// カードを保持したい場所で使う。`@Model` を直接保持すると、カード削除後に
+/// 削除済みモデルのプロパティへアクセスしてしまうため。
+struct CardSnapshot: Hashable {
+    /// 元になった `PictureCard` の id。
+    /// 「いつ」カテゴリの日付カードのように DB に存在しないカードは nil。
+    let cardID: UUID?
+    let displayName: String
+    let kanaText: String
+    let category: String
+    let isPreset: Bool
+    let presetImageName: String?
+
+    init(
+        cardID: UUID?,
+        displayName: String,
+        kanaText: String,
+        category: String,
+        isPreset: Bool,
+        presetImageName: String?
+    ) {
+        self.cardID = cardID
+        self.displayName = displayName
+        self.kanaText = kanaText
+        self.category = category
+        self.isPreset = isPreset
+        self.presetImageName = presetImageName
+    }
+
+    init(_ card: PictureCard) {
+        self.init(
+            cardID: card.id,
+            displayName: card.displayName,
+            kanaText: card.kanaText,
+            category: card.category,
+            isPreset: card.isPreset,
+            presetImageName: card.presetImageName
+        )
+    }
+}

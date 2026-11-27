@@ -1,18 +1,30 @@
+import Foundation
 import Testing
 @testable import Picton
 
 @Suite("SentenceViewModel")
 struct SentenceViewModelTests {
+    private func snapshot(_ name: String, id: UUID? = UUID()) -> CardSnapshot {
+        CardSnapshot(
+            cardID: id,
+            displayName: name,
+            kanaText: name.lowercased(),
+            category: "人",
+            isPreset: false,
+            presetImageName: nil
+        )
+    }
+
     private func makeViewModel(_ names: [String]) -> SentenceViewModel {
         let vm = SentenceViewModel()
         for name in names {
-            vm.append(PictureCard(displayName: name, kanaText: name.lowercased(), category: "人"))
+            vm.append(snapshot(name))
         }
         return vm
     }
 
     private func names(_ vm: SentenceViewModel) -> [String] {
-        vm.cards.map(\.displayName)
+        vm.items.map(\.card.displayName)
     }
 
     @Test func appendAndFullKanaText() {
@@ -21,17 +33,42 @@ struct SentenceViewModelTests {
         #expect(vm.fullKanaText() == "a b c")
     }
 
-    @Test func removeAtIndex() {
+    @Test func snapshotCopiesPictureCard() {
+        let card = PictureCard(displayName: "A", kanaText: "えー", category: "人",
+                               isPreset: true, presetImageName: "person.fill")
+        let snap = CardSnapshot(card)
+        #expect(snap.cardID == card.id)
+        #expect(snap.displayName == "A")
+        #expect(snap.kanaText == "えー")
+        #expect(snap.category == "人")
+        #expect(snap.isPreset)
+        #expect(snap.presetImageName == "person.fill")
+    }
+
+    @Test func removeByID() {
         let vm = makeViewModel(["A", "B", "C"])
-        vm.remove(at: 1)
+        vm.remove(id: vm.items[1].id)
         #expect(names(vm) == ["A", "C"])
     }
 
-    @Test(arguments: [-1, 3, 100])
-    func removeOutOfRangeIsIgnored(index: Int) {
+    @Test func removeUnknownIDIsIgnored() {
         let vm = makeViewModel(["A", "B", "C"])
-        vm.remove(at: index)
+        vm.remove(id: UUID())
         #expect(names(vm) == ["A", "B", "C"])
+    }
+
+    /// 同じカードを 2 回並べても要素ごとに ID が異なり、片方だけ削除できる (#58)
+    @Test func sameCardAppendedTwiceHasDistinctIDs() {
+        let vm = SentenceViewModel()
+        let card = snapshot("A")
+        vm.append(card)
+        vm.append(card)
+        #expect(vm.items.count == 2)
+        #expect(vm.items[0].id != vm.items[1].id)
+
+        vm.remove(id: vm.items[1].id)
+        #expect(vm.items.count == 1)
+        #expect(names(vm) == ["A"])
     }
 
     /// destination は List.onMove と同じく「移動前の配列における挿入位置」
@@ -63,5 +100,47 @@ struct SentenceViewModelTests {
         vm.clear()
         #expect(vm.isEmpty)
         #expect(vm.fullKanaText() == "")
+    }
+
+    // MARK: - sync(with:) (#36)
+
+    /// DB から削除されたカードは文エリアからも取り除かれる
+    @Test func syncRemovesDeletedCards() {
+        let a = snapshot("A"), b = snapshot("B")
+        let vm = SentenceViewModel()
+        vm.append(a)
+        vm.append(b)
+        vm.append(a)
+
+        vm.sync(with: [b])
+        #expect(names(vm) == ["B"])
+    }
+
+    /// 編集されたカードの表示名・読みが反映され、要素の ID と並び順は保たれる
+    @Test func syncUpdatesEditedCards() {
+        let id = UUID()
+        let vm = SentenceViewModel()
+        vm.append(snapshot("A", id: id))
+        vm.append(snapshot("B"))
+        let itemIDs = vm.items.map(\.id)
+        let b = vm.items[1].card
+
+        let edited = CardSnapshot(cardID: id, displayName: "A2", kanaText: "えーつー",
+                                  category: "人", isPreset: false, presetImageName: nil)
+        vm.sync(with: [edited, b])
+
+        #expect(names(vm) == ["A2", "B"])
+        #expect(vm.fullKanaText() == "えーつー b")
+        #expect(vm.items.map(\.id) == itemIDs)
+    }
+
+    /// DB に存在しないカード（「いつ」の日付カードなど）は同期で消えない
+    @Test func syncKeepsTransientCards() {
+        let vm = SentenceViewModel()
+        vm.append(snapshot("きょう", id: nil))
+        vm.append(snapshot("A"))
+
+        vm.sync(with: [])
+        #expect(names(vm) == ["きょう"])
     }
 }

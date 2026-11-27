@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SentenceCardView: View {
-    let card: PictureCard
+    let card: CardSnapshot
     let onRemove: () -> Void
 
     var body: some View {

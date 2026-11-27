@@ -22,23 +22,24 @@ struct SentenceAreaView: View {
 
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 6) {
-                    ForEach(Array(sentenceVM.cards.enumerated()), id: \.element.id) { index, card in
-                        SentenceCardView(card: card) {
+                    ForEach(sentenceVM.items) { item in
+                        SentenceCardView(card: item.card) {
                             withAnimation(.easeInOut(duration: 0.2)) {
-                                sentenceVM.remove(at: index)
+                                sentenceVM.remove(id: item.id)
                             }
                         }
-                        .draggable(card.id.uuidString) {
-                            SentenceCardView(card: card, onRemove: {})
+                        .draggable(item.id.uuidString) {
+                            SentenceCardView(card: item.card, onRemove: {})
                                 .opacity(0.8)
                         }
-                        .dropDestination(for: String.self) { items, _ in
-                            guard let idString = items.first,
-                                  let sourceIndex = sentenceVM.cards.firstIndex(where: { $0.id.uuidString == idString }) else {
+                        .dropDestination(for: String.self) { droppedIDs, _ in
+                            guard let idString = droppedIDs.first,
+                                  let sourceIndex = sentenceVM.items.firstIndex(where: { $0.id.uuidString == idString }),
+                                  let targetIndex = sentenceVM.items.firstIndex(where: { $0.id == item.id }) else {
                                 return false
                             }
                             withAnimation(.easeInOut(duration: 0.2)) {
-                                sentenceVM.move(from: sourceIndex, to: index)
+                                sentenceVM.move(from: sourceIndex, to: targetIndex)
                             }
                             return true
                         }
