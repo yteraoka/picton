@@ -1,3 +1,4 @@
+import AVFoundation
 import SwiftUI
 import SwiftData
 import PhotosUI
@@ -51,13 +52,7 @@ struct AddCardView: View {
                             }
                             .buttonStyle(.bordered)
 
-                            Button {
-                                showCamera = true
-                            } label: {
-                                Label("カメラで撮る", systemImage: "camera")
-                                    .frame(maxWidth: .infinity)
-                            }
-                            .buttonStyle(.bordered)
+                            CameraButton(showCamera: $showCamera)
                         }
                     }
                 }
@@ -121,6 +116,90 @@ struct AddCardView: View {
         modelContext.insert(card)
         try? modelContext.save()
         dismiss()
+    }
+}
+
+// MARK: - Camera button
+
+/// 「カメラで撮る」ボタン
+///
+/// `UIImagePickerController` はカメラが使えない環境（シミュレータ、カメラのない端末、
+/// 機能制限でカメラを無効にした端末など）で `.camera` を指定するとクラッシュするため、
+/// 使えないときはボタン自体を表示しない。カメラの権限が拒否されていれば設定 App へ案内する (#57)。
+struct CameraButton: View {
+    @Binding var showCamera: Bool
+
+    @State private var permissionAlert: PermissionAlert?
+    @Environment(\.openURL) private var openURL
+
+    private enum PermissionAlert: Identifiable {
+        case denied
+        case restricted
+        var id: Self { self }
+    }
+
+    static var isCameraAvailable: Bool {
+        UIImagePickerController.isSourceTypeAvailable(.camera)
+    }
+
+    var body: some View {
+        if Self.isCameraAvailable {
+            Button {
+                openCamera()
+            } label: {
+                Label("カメラで撮る", systemImage: "camera")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .alert(
+                permissionAlert == .restricted ? "カメラを使用できません" : "カメラへのアクセスが許可されていません",
+                isPresented: Binding(
+                    get: { permissionAlert != nil },
+                    set: { if !$0 { permissionAlert = nil } }
+                ),
+                presenting: permissionAlert
+            ) { alert in
+                if alert == .denied {
+                    Button("設定を開く") {
+                        if let url = URL(string: UIApplication.openSettingsURLString) {
+                            openURL(url)
+                        }
+                    }
+                    Button("キャンセル", role: .cancel) {}
+                } else {
+                    Button("OK", role: .cancel) {}
+                }
+            } message: { alert in
+                switch alert {
+                case .denied:
+                    Text("カメラで撮影するには、設定 App で Picton のカメラへのアクセスを許可してください。")
+                case .restricted:
+                    Text("この端末ではカメラの使用が制限されています。写真ライブラリから画像を選んでください。")
+                }
+            }
+        }
+    }
+
+    private func openCamera() {
+        switch AVCaptureDevice.authorizationStatus(for: .video) {
+        case .authorized:
+            showCamera = true
+        case .notDetermined:
+            Task { @MainActor in
+                if await AVCaptureDevice.requestAccess(for: .video) {
+                    showCamera = true
+                } else {
+                    permissionAlert = .denied
+                }
+            }
+        case .denied:
+            permissionAlert = .denied
+        case .restricted:
+            permissionAlert = .restricted
+        @unknown default:
+            // 未知の状態は UIImagePickerController 側の権限ダイアログに任せる
+            showCamera = true
+        }
     }
 }
 
