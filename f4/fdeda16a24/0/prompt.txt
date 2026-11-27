@@ -1,0 +1,11 @@
+<task-notification>
+<task-id>bfrsajpjs</task-id>
+<tool-use-id>toolu_0123frvoJPNdmyyz3jkbtoB3</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-teraoka-ghq-github-com-yteraoka-picton/58b28800-e54a-4239-954e-4f999c0d98c1/tasks/bfrsajpjs.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for CI and show test summary" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+merge しました。.github/workflows/ci.yml で actions/checkout, actions/upload-artifact を最新にして commit hash で pinning して PR を作成して
