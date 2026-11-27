@@ -1,0 +1,43 @@
+{
+  "cli_version": "0.13.4",
+  "checkpoint_id": "4064d9b784b0",
+  "strategy": "manual-commit",
+  "branch": "fix/file-protection-and-export-cleanup",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "Picton/PictonApp.swift",
+    "Picton/Services/CardExportImportService.swift",
+    "Picton/Services/ImageStorageService.swift",
+    "Picton/Views/DataManagementView.swift"
+  ],
+  "sessions": [
+    {
+      "metadata": "/40/64d9b784b0/0/metadata.json",
+      "transcript": "/40/64d9b784b0/0/full.jsonl",
+      "compact_transcript": "/40/64d9b784b0/0/transcript.jsonl",
+      "content_hash": "/40/64d9b784b0/0/content_hash.txt",
+      "prompt": "/40/64d9b784b0/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 58,
+    "cache_creation_tokens": 137876,
+    "cache_read_tokens": 2168283,
+    "output_tokens": 21912,
+    "api_call_count": 27
+  },
+  "redaction": {
+    "replacements": 23,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 23,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
