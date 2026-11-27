@@ -8,24 +8,39 @@ enum ImageStorageService {
     /// デコード前に弾くための上限。iPhone の 48MP 写真（約 4,900 万ピクセル）は通す。
     static let maxSourcePixelCount = 50_000_000
 
+    /// 利用者が写真ライブラリから選んだ画像のデコードを許可する最大ピクセル数
+    ///
+    /// 自分の写真なので外部からの画像（`maxSourcePixelCount`）より緩くし、
+    /// iPhone のパノラマ写真（6,000 万ピクセル超）も選べるようにする。
+    /// 縮小デコードするため、元画像を丸ごと展開することはない。
+    static let maxPickedPhotoPixelCount = 200_000_000
+
+    /// 保存するカード画像の一辺のピクセル数
+    ///
+    /// `Constants.cardImageSize`（pt）を 3x 相当で保存する。以前は画面スケールに従って
+    /// 端末ごとに 720px / 1080px と変わっていたため、端末によらず固定にした (#60)。
+    static let storedPixelSize = Int(Constants.cardImageSize) * 3
+
     /// カード画像としてデコードするときの長辺の最大ピクセル数
     ///
-    /// `save(image:id:)` は 360pt 四方を画面スケール（最大 3x）で描画するため、
-    /// 保存される画像は最大 1080px 四方になる。それ以上で展開しても表示は変わらない。
-    static let maxDecodedPixelSize = Int(Constants.cardImageSize) * 3
+    /// 保存する画像は `storedPixelSize` 四方なので、それ以上で展開しても表示は変わらない。
+    static let maxDecodedPixelSize = storedPixelSize
 
     /// 画像をカード用の正方形（`Constants.cardImageSize` 四方）に切り出して保存する
     ///
     /// 縦横比を保ったまま短辺が正方形に収まるよう拡大・縮小し、はみ出した部分は
     /// 中央を残して切り落とす（アスペクトフィル）。表示側の `.scaledToFill()` と同じ見え方になる。
     static func save(image: UIImage, id: UUID) throws -> URL {
-        let side = Constants.cardImageSize
+        let side = CGFloat(storedPixelSize)
         guard let drawRect = aspectFillRect(for: image.size, side: side) else {
             throw ImageStorageError.invalidImage
         }
 
+        // 画面スケールに依存しないよう、1 ピクセル = 1 ポイントで描画する
+        let format = UIGraphicsImageRendererFormat.preferred()
+        format.scale = 1
         let size = CGSize(width: side, height: side)
-        let renderer = UIGraphicsImageRenderer(size: size)
+        let renderer = UIGraphicsImageRenderer(size: size, format: format)
         let resized = renderer.image { _ in
             // 描画範囲の外（はみ出した部分）は正方形のキャンバスに切り取られる
             image.draw(in: drawRect)
@@ -100,14 +115,55 @@ enum ImageStorageService {
         return UIImage(cgImage: cgImage)
     }
 
+    /// 写真ライブラリから選んだ画像データを、カード用の大きさに縮小デコードする
+    ///
+    /// `UIImage(data:)` は元画像（48MP なら 100MB 超のビットマップ）をそのまま展開するため使わない。
+    /// 保存時に正方形に切り出しても拡大にならないよう、短辺が `storedPixelSize` 以上残る大きさにする。
+    /// 画像として読めない、または大きすぎる場合は nil。
+    static func pickedImage(from data: Data) -> UIImage? {
+        guard let source = CGImageSourceCreateWithData(data as CFData, sourceOptions),
+              let cgImage = downsampledImage(
+                from: source,
+                maxPixelSize: maxDecodedPixelSize,
+                maxSourcePixelCount: maxPickedPhotoPixelCount,
+                shortSideAtLeast: storedPixelSize
+              )
+        else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
+
+    /// カメラで撮った画像を、短辺が `shortSide` になるよう縮小する
+    ///
+    /// `UIImagePickerController` はフル解像度の画像を返すため、保存まで持ち続けないよう
+    /// 受け取ってすぐに縮小する。保存時に正方形に切り出しても拡大にならないよう、短辺を基準にする。
+    /// 向き（imageOrientation）は描画時に反映される。既に十分小さい画像はそのまま返す。
+    static func downscaled(_ image: UIImage, shortSide: Int = storedPixelSize) -> UIImage {
+        let pixelWidth = image.size.width * image.scale
+        let pixelHeight = image.size.height * image.scale
+        let currentShortSide = min(pixelWidth, pixelHeight)
+        guard currentShortSide > CGFloat(shortSide), pixelWidth > 0, pixelHeight > 0 else { return image }
+
+        let ratio = CGFloat(shortSide) / currentShortSide
+        let size = CGSize(width: (pixelWidth * ratio).rounded(), height: (pixelHeight * ratio).rounded())
+        let format = UIGraphicsImageRendererFormat.preferred()
+        format.scale = 1
+        return UIGraphicsImageRenderer(size: size, format: format).image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+    }
+
     /// 元画像を丸ごと展開しないよう、ImageIO を直接使う
     private static let sourceOptions = [kCGImageSourceShouldCache: false] as CFDictionary
 
     /// 画像のピクセル数を確認してから、長辺が `maxPixelSize` 以下になるよう縮小デコードする
+    ///
+    /// `shortSideAtLeast` を指定すると、短辺がその値以上残るよう長辺の上限を広げる
+    /// （元画像より大きくはしない）。
     private static func downsampledImage(
         from source: CGImageSource,
         maxPixelSize: Int,
-        maxSourcePixelCount: Int = ImageStorageService.maxSourcePixelCount
+        maxSourcePixelCount: Int = ImageStorageService.maxSourcePixelCount,
+        shortSideAtLeast: Int? = nil
     ) -> CGImage? {
         guard CGImageSourceGetCount(source) > 0,
               let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, sourceOptions)
@@ -119,11 +175,20 @@ enum ImageStorageService {
               width * height <= maxSourcePixelCount
         else { return nil }
 
+        var limit = maxPixelSize
+        if let minShortSide = shortSideAtLeast {
+            let longSide = max(width, height)
+            let shortSide = min(width, height)
+            let needed = Int((Double(minShortSide) * Double(longSide) / Double(shortSide)).rounded(.up))
+            // 極端に細長い画像で展開サイズが膨らみすぎないよう、長辺は maxPixelSize の 4 倍までにする
+            limit = min(longSide, max(maxPixelSize, needed), maxPixelSize * 4)
+        }
+
         let thumbnailOptions = [
             kCGImageSourceCreateThumbnailFromImageAlways: true,
             kCGImageSourceCreateThumbnailWithTransform: true, // EXIF の向きを反映する
             kCGImageSourceShouldCacheImmediately: true,
-            kCGImageSourceThumbnailMaxPixelSize: maxPixelSize,
+            kCGImageSourceThumbnailMaxPixelSize: limit,
         ] as CFDictionary
         return CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions)
     }

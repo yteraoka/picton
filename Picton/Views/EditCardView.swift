@@ -100,13 +100,14 @@ struct EditCardView: View {
                         .disabled(displayName.isEmpty || kanaText.isEmpty)
                 }
             }
-            .onChange(of: photosPickerItem) { _, newItem in
-                Task {
-                    if let data = try? await newItem?.loadTransferable(type: Data.self),
-                       let uiImage = UIImage(data: data) {
-                        newImage = uiImage
-                    }
-                }
+            // 選び直すと前の読み込みは自動でキャンセルされ、古い画像で上書きしない (#60)
+            .task(id: photosPickerItem) {
+                guard let item = photosPickerItem,
+                      let data = try? await item.loadTransferable(type: Data.self) else { return }
+                // フル解像度で展開しないよう、カード用の大きさに縮小デコードする
+                let image = await Task.detached { ImageStorageService.pickedImage(from: data) }.value
+                guard !Task.isCancelled, let image else { return }
+                newImage = image
             }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraView(image: $newImage)

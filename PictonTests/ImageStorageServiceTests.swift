@@ -157,6 +157,61 @@ struct ImageStorageServiceTests {
         }
     }
 
+    // MARK: - 写真選択・カメラ画像の縮小 (#60)
+
+    /// 選んだ写真は短辺が保存サイズ以上残るよう縮小デコードし、正方形に切り出しても拡大にならない
+    @Test func pickedImageKeepsShortSideAtStoredSize() throws {
+        let image = try #require(ImageStorageService.pickedImage(from: TestImages.jpeg(width: 3000, height: 1500)))
+        let size = pixelSize(image)
+        #expect(min(size.width, size.height) == CGFloat(ImageStorageService.storedPixelSize))
+        #expect(abs(size.width / size.height - 2) < 0.01)
+    }
+
+    @Test func pickedImageDoesNotUpscaleSmallImage() throws {
+        let image = try #require(ImageStorageService.pickedImage(from: TestImages.jpeg(width: 1200, height: 900)))
+        #expect(pixelSize(image) == CGSize(width: 1200, height: 900))
+    }
+
+    @Test func pickedImageRejectsNonImageData() {
+        #expect(ImageStorageService.pickedImage(from: Data("not an image".utf8)) == nil)
+    }
+
+    @Test func pickedPhotoLimitAllowsPanoramas() {
+        // iPhone のパノラマ（約 16000×4000）は、インポート用の上限は超えるが写真選択では通す
+        #expect(16_000 * 4_000 > ImageStorageService.maxSourcePixelCount)
+        #expect(16_000 * 4_000 <= ImageStorageService.maxPickedPhotoPixelCount)
+    }
+
+    @Test func downscaledCameraImageKeepsShortSideAtStoredSize() {
+        let source = UIImage(cgImage: TestImages.cgImage(width: 4000, height: 3000))
+        let image = ImageStorageService.downscaled(source)
+        #expect(pixelSize(image) == CGSize(width: 1440, height: 1080))
+    }
+
+    /// scale が 1 でない画像もピクセル数で判定する
+    @Test func downscaledUsesPixelSizeOfScaledImage() {
+        let cg = TestImages.cgImage(width: 2000, height: 1500)
+        let source = UIImage(cgImage: cg, scale: 2, orientation: .up)  // 1000×750 pt
+        let image = ImageStorageService.downscaled(source)
+        #expect(pixelSize(image) == CGSize(width: 1440, height: 1080))
+    }
+
+    @Test func downscaledReturnsSmallImageAsIs() {
+        let source = UIImage(cgImage: TestImages.cgImage(width: 800, height: 600))
+        #expect(ImageStorageService.downscaled(source) === source)
+    }
+
+    /// 保存サイズは画面スケールによらず storedPixelSize 四方
+    @Test func savedImageHasFixedPixelSize() throws {
+        let id = UUID()
+        defer { ImageStorageService.delete(id: id) }
+        _ = try ImageStorageService.save(image: UIImage(cgImage: TestImages.cgImage(width: 2000, height: 1500)), id: id)
+
+        let properties = try #require(TestImages.properties(ofFileAt: TestImages.storedImageURL(id: id)))
+        #expect(properties[kCGImagePropertyPixelWidth] as? Int == ImageStorageService.storedPixelSize)
+        #expect(properties[kCGImagePropertyPixelHeight] as? Int == ImageStorageService.storedPixelSize)
+    }
+
     @Test func roundTripThroughSave() throws {
         let id = UUID()
         defer { ImageStorageService.delete(id: id) }
