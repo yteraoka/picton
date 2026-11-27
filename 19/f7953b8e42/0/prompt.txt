@@ -1,0 +1,11 @@
+<task-notification>
+<task-id>buienxj40</task-id>
+<tool-use-id>toolu_01NZ1wxFq1XGNGPbmfHo7pxX</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-teraoka-ghq-github-com-yteraoka-picton/58b28800-e54a-4239-954e-4f999c0d98c1/tasks/buienxj40.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for CI on PR #73" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+merge しました。次に Issue #64 に対応してください
