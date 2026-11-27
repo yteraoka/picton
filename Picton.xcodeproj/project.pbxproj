@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 63;
+	objectVersion = 77;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -11,52 +11,89 @@
 		0FE8BBEE7E3F8A53F59E0219 /* PictureCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = ACF011755B058F06325E4FC2 /* PictureCard.swift */; };
 		1171CF5641BFEEABAFDF6C9E /* PictonApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 48E6009E4F57DB3D0AE807C3 /* PictonApp.swift */; };
 		1442B9B23D96A8AB481A34DB /* ImageStorageService.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1C574C26823AF2E01278B7F /* ImageStorageService.swift */; };
+		16AABF4545A0FA508372ACB2 /* PresetImageBootstrapperTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A17312B6A04472D45CDFC1C /* PresetImageBootstrapperTests.swift */; };
 		2F3197E8DEA620F5F3A6B0FA /* CardExportImportService.swift in Sources */ = {isa = PBXBuildFile; fileRef = E1AFD8049C29C32180BFE24F /* CardExportImportService.swift */; };
 		33DD959B32F834E630C49E7F /* PresetCardData.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9F42243B84A3D10FE3DEE1F /* PresetCardData.swift */; };
 		4C50D4F5DC5E57D064FE239C /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = CFBF7AEA0FF45FF1FDC1F519 /* Assets.xcassets */; };
 		57A0BDAA1006CCCA4B5B6D0D /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4AE01E72C80E19E52C604B1 /* ContentView.swift */; };
+		5855476FD6BC469167B64F3F /* CardExportImportServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF146329AC1DD6301736C341 /* CardExportImportServiceTests.swift */; };
 		58E3D46184CE6AC5047C40D1 /* Constants.swift in Sources */ = {isa = PBXBuildFile; fileRef = F6265C5D0DADA01F1DB860FC /* Constants.swift */; };
+		6220D7EC950BCAC58FDE1647 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 0B2D9E4ABA42CC6CBEF0273D /* PrivacyInfo.xcprivacy */; };
 		795A09132931AF353A60CA4F /* PlaybackButtonView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 069DCCF33021C89E87C9AEF4 /* PlaybackButtonView.swift */; };
 		7FA3146E8AA004F29E16EA92 /* AddCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3CC9DC280D2C438B0E13D2A9 /* AddCardView.swift */; };
+		877103D29CBA03F2A573641A /* CardImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 261E60C5950FA941C4365C0B /* CardImageView.swift */; };
+		888C6388A135621E8F3A683A /* PictonUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F2C018A05F137E5130378418 /* PictonUITests.swift */; };
 		8F0089AE407805BD917426B9 /* SentenceViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 96DE31985C7F5A7644DC98AF /* SentenceViewModel.swift */; };
+		9A7BB22D688AF32CDAC65DB9 /* ImageStorageServiceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8337B3EF325DB614D81E8F0A /* ImageStorageServiceTests.swift */; };
 		A16F7554EA6CC354F31F21F8 /* SentenceCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6706DE6105EEFB966587689C /* SentenceCardView.swift */; };
 		A51C24CC202385C4A01FABED /* CardGridItemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4DCA365C132C09F99D3DEF57 /* CardGridItemView.swift */; };
-		E5F7A9B1C3D5E7F9A1B3C5D7 /* CardImageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F1E3C5A7B9D1F3E5C7A9B1D3 /* CardImageView.swift */; };
+		ADD8827DE6B01F3412F60270 /* SentenceViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9670A17CA721318E55B62A9F /* SentenceViewModelTests.swift */; };
 		B77B0768CD726FD7E52BB186 /* PresetImageBootstrapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2596456960CB2F2E3AD5FF6E /* PresetImageBootstrapper.swift */; };
 		BDDD257ED3359D8A13D245B4 /* EditCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 68A7101C022576CD39F92966 /* EditCardView.swift */; };
+		BFB6C2B12FCD795A497746EA /* JapaneseHolidayChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AB0A11F1DAAC790B2217603 /* JapaneseHolidayChecker.swift */; };
 		C1ACE57AF2B5D39A379CFBCB /* TTSService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DA7BB58BB59974C837254C0 /* TTSService.swift */; };
-		D4E2A1B3F7C8D9E012345678 /* HiddenCardsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F6A7B8C9D0E1F2 /* HiddenCardsListView.swift */; };
+		C2FF68F733470C5D6ACA4AD6 /* TestImages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2A80AD8343DE7C1B28F7E4 /* TestImages.swift */; };
+		D44D3BBC3339A23BDF721FAA /* WhenCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8646D2ABAF6433B07A7BECB /* WhenCategoryView.swift */; };
+		D8AD0A0E4962241A1A64A6F4 /* HiddenCardsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF55ECBFD3F2626B081A037 /* HiddenCardsListView.swift */; };
 		DF1F9FEEF2601E5B7151E803 /* CardLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99AC4908AD56C1523103ECAD /* CardLibraryViewModel.swift */; };
+		E0F5A5C61D534A1297BDBB55 /* JapaneseHolidayCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBD63B8623749B7E4C41D9C8 /* JapaneseHolidayCheckerTests.swift */; };
 		F5238899DF1BC3E53F9AF331 /* DataManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B5AAFF5C3C96882F7B713D8 /* DataManagementView.swift */; };
 		FCD0B820B5DBF707AD647784 /* SentenceAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A788C755291614D2171FCE0A /* SentenceAreaView.swift */; };
-		C4D6E8F0A2B4C6D8E0F2A4B6 /* WhenCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C5D7E9F1A3B5C7D9E1F3A5 /* WhenCategoryView.swift */; };
 /* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		716FCAF4606030D953D13A04 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B136F2E158F6EBEF34AEE3BA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 149D144E861CA3EDC923CA55;
+			remoteInfo = Picton;
+		};
+		F7550660364703B223A84348 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = B136F2E158F6EBEF34AEE3BA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 149D144E861CA3EDC923CA55;
+			remoteInfo = Picton;
+		};
+/* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
 		069DCCF33021C89E87C9AEF4 /* PlaybackButtonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlaybackButtonView.swift; sourceTree = "<group>"; };
+		0B2D9E4ABA42CC6CBEF0273D /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		0B5AAFF5C3C96882F7B713D8 /* DataManagementView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataManagementView.swift; sourceTree = "<group>"; };
 		2596456960CB2F2E3AD5FF6E /* PresetImageBootstrapper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetImageBootstrapper.swift; sourceTree = "<group>"; };
+		261E60C5950FA941C4365C0B /* CardImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardImageView.swift; sourceTree = "<group>"; };
+		2B2A80AD8343DE7C1B28F7E4 /* TestImages.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TestImages.swift; sourceTree = "<group>"; };
+		3A17312B6A04472D45CDFC1C /* PresetImageBootstrapperTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetImageBootstrapperTests.swift; sourceTree = "<group>"; };
 		3CC9DC280D2C438B0E13D2A9 /* AddCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AddCardView.swift; sourceTree = "<group>"; };
 		48E6009E4F57DB3D0AE807C3 /* PictonApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PictonApp.swift; sourceTree = "<group>"; };
 		4DCA365C132C09F99D3DEF57 /* CardGridItemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGridItemView.swift; sourceTree = "<group>"; };
-		F1E3C5A7B9D1F3E5C7A9B1D3 /* CardImageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardImageView.swift; sourceTree = "<group>"; };
+		5AB0A11F1DAAC790B2217603 /* JapaneseHolidayChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JapaneseHolidayChecker.swift; sourceTree = "<group>"; };
 		6706DE6105EEFB966587689C /* SentenceCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceCardView.swift; sourceTree = "<group>"; };
 		68A7101C022576CD39F92966 /* EditCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EditCardView.swift; sourceTree = "<group>"; };
+		81DBDC967C8A39587555C7F0 /* PictonTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PictonTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8337B3EF325DB614D81E8F0A /* ImageStorageServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStorageServiceTests.swift; sourceTree = "<group>"; };
+		9670A17CA721318E55B62A9F /* SentenceViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceViewModelTests.swift; sourceTree = "<group>"; };
 		96DE31985C7F5A7644DC98AF /* SentenceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceViewModel.swift; sourceTree = "<group>"; };
 		99AC4908AD56C1523103ECAD /* CardLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardLibraryViewModel.swift; sourceTree = "<group>"; };
 		9DA7BB58BB59974C837254C0 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
-		A1B2C3D4E5F6A7B8C9D0E1F2 /* HiddenCardsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenCardsListView.swift; sourceTree = "<group>"; };
-		A279124BD7ACE599D2DCE4C1 /* Picton.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Picton.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A279124BD7ACE599D2DCE4C1 /* Picton.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Picton.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A788C755291614D2171FCE0A /* SentenceAreaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceAreaView.swift; sourceTree = "<group>"; };
+		AAF55ECBFD3F2626B081A037 /* HiddenCardsListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HiddenCardsListView.swift; sourceTree = "<group>"; };
 		ACF011755B058F06325E4FC2 /* PictureCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PictureCard.swift; sourceTree = "<group>"; };
+		B8646D2ABAF6433B07A7BECB /* WhenCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhenCategoryView.swift; sourceTree = "<group>"; };
 		B9F42243B84A3D10FE3DEE1F /* PresetCardData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PresetCardData.swift; sourceTree = "<group>"; };
 		CC06D866049D14795E3002C0 /* CardGridView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardGridView.swift; sourceTree = "<group>"; };
 		CFBF7AEA0FF45FF1FDC1F519 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		E1AFD8049C29C32180BFE24F /* CardExportImportService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardExportImportService.swift; sourceTree = "<group>"; };
+		E56A1023E147DCA1CA9F47A2 /* PictonUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = PictonUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EBD63B8623749B7E4C41D9C8 /* JapaneseHolidayCheckerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JapaneseHolidayCheckerTests.swift; sourceTree = "<group>"; };
 		F1C574C26823AF2E01278B7F /* ImageStorageService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStorageService.swift; sourceTree = "<group>"; };
+		F2C018A05F137E5130378418 /* PictonUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PictonUITests.swift; sourceTree = "<group>"; };
 		F4AE01E72C80E19E52C604B1 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
-		B3C5D7E9F1A3B5C7D9E1F3A5 /* WhenCategoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WhenCategoryView.swift; sourceTree = "<group>"; };
 		F6265C5D0DADA01F1DB860FC /* Constants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Constants.swift; sourceTree = "<group>"; };
+		FF146329AC1DD6301736C341 /* CardExportImportServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardExportImportServiceTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -64,6 +101,8 @@
 			isa = PBXGroup;
 			children = (
 				FCBEE41BD472D8875B173C33 /* Picton */,
+				7F999A1F2F6D3F19AB8EDA03 /* PictonTests */,
+				51168E7A10F2EA96B7D98074 /* PictonUITests */,
 				B1E36E39C95160A6B4558B38 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -78,6 +117,14 @@
 			path = Services;
 			sourceTree = "<group>";
 		};
+		51168E7A10F2EA96B7D98074 /* PictonUITests */ = {
+			isa = PBXGroup;
+			children = (
+				F2C018A05F137E5130378418 /* PictonUITests.swift */,
+			);
+			path = PictonUITests;
+			sourceTree = "<group>";
+		};
 		532BFDB18477239BD7D1D0C0 /* Models */ = {
 			isa = PBXGroup;
 			children = (
@@ -87,10 +134,25 @@
 			path = Models;
 			sourceTree = "<group>";
 		};
+		7F999A1F2F6D3F19AB8EDA03 /* PictonTests */ = {
+			isa = PBXGroup;
+			children = (
+				FF146329AC1DD6301736C341 /* CardExportImportServiceTests.swift */,
+				8337B3EF325DB614D81E8F0A /* ImageStorageServiceTests.swift */,
+				EBD63B8623749B7E4C41D9C8 /* JapaneseHolidayCheckerTests.swift */,
+				3A17312B6A04472D45CDFC1C /* PresetImageBootstrapperTests.swift */,
+				9670A17CA721318E55B62A9F /* SentenceViewModelTests.swift */,
+				2B2A80AD8343DE7C1B28F7E4 /* TestImages.swift */,
+			);
+			path = PictonTests;
+			sourceTree = "<group>";
+		};
 		B1E36E39C95160A6B4558B38 /* Products */ = {
 			isa = PBXGroup;
 			children = (
 				A279124BD7ACE599D2DCE4C1 /* Picton.app */,
+				81DBDC967C8A39587555C7F0 /* PictonTests.xctest */,
+				E56A1023E147DCA1CA9F47A2 /* PictonUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -99,6 +161,7 @@
 			isa = PBXGroup;
 			children = (
 				F6265C5D0DADA01F1DB860FC /* Constants.swift */,
+				5AB0A11F1DAAC790B2217603 /* JapaneseHolidayChecker.swift */,
 				2596456960CB2F2E3AD5FF6E /* PresetImageBootstrapper.swift */,
 			);
 			path = Utilities;
@@ -118,16 +181,16 @@
 			children = (
 				3CC9DC280D2C438B0E13D2A9 /* AddCardView.swift */,
 				4DCA365C132C09F99D3DEF57 /* CardGridItemView.swift */,
-				F1E3C5A7B9D1F3E5C7A9B1D3 /* CardImageView.swift */,
 				CC06D866049D14795E3002C0 /* CardGridView.swift */,
+				261E60C5950FA941C4365C0B /* CardImageView.swift */,
 				F4AE01E72C80E19E52C604B1 /* ContentView.swift */,
 				0B5AAFF5C3C96882F7B713D8 /* DataManagementView.swift */,
 				68A7101C022576CD39F92966 /* EditCardView.swift */,
-				A1B2C3D4E5F6A7B8C9D0E1F2 /* HiddenCardsListView.swift */,
+				AAF55ECBFD3F2626B081A037 /* HiddenCardsListView.swift */,
 				069DCCF33021C89E87C9AEF4 /* PlaybackButtonView.swift */,
 				A788C755291614D2171FCE0A /* SentenceAreaView.swift */,
 				6706DE6105EEFB966587689C /* SentenceCardView.swift */,
-				B3C5D7E9F1A3B5C7D9E1F3A5 /* WhenCategoryView.swift */,
+				B8646D2ABAF6433B07A7BECB /* WhenCategoryView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -137,6 +200,7 @@
 			children = (
 				CFBF7AEA0FF45FF1FDC1F519 /* Assets.xcassets */,
 				48E6009E4F57DB3D0AE807C3 /* PictonApp.swift */,
+				0B2D9E4ABA42CC6CBEF0273D /* PrivacyInfo.xcprivacy */,
 				532BFDB18477239BD7D1D0C0 /* Models */,
 				4AEDAB1349A47D27E05E1911 /* Services */,
 				CF1362D081A8ECA471BF7B26 /* Utilities */,
@@ -167,6 +231,42 @@
 			productReference = A279124BD7ACE599D2DCE4C1 /* Picton.app */;
 			productType = "com.apple.product-type.application";
 		};
+		3A3AED140193FFE6EB474633 /* PictonTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = D3DFDFD76593100F3294B829 /* Build configuration list for PBXNativeTarget "PictonTests" */;
+			buildPhases = (
+				E4BC2AF6D8FB6DB2061A059D /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				7185EBD71BAB6459DAC48926 /* PBXTargetDependency */,
+			);
+			name = PictonTests;
+			packageProductDependencies = (
+			);
+			productName = PictonTests;
+			productReference = 81DBDC967C8A39587555C7F0 /* PictonTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		CF71F5DB1003E284D9359EB5 /* PictonUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6D52685C8B53D8287E42C4D0 /* Build configuration list for PBXNativeTarget "PictonUITests" */;
+			buildPhases = (
+				D4BDF31FD00527620303A5E4 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				0969360B0FD5192A4CB09157 /* PBXTargetDependency */,
+			);
+			name = PictonUITests;
+			packageProductDependencies = (
+			);
+			productName = PictonUITests;
+			productReference = E56A1023E147DCA1CA9F47A2 /* PictonUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -174,10 +274,21 @@
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = YES;
-				LastUpgradeCheck = 1600;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					149D144E861CA3EDC923CA55 = {
+						DevelopmentTeam = H6KG946X5L;
+					};
+					3A3AED140193FFE6EB474633 = {
+						DevelopmentTeam = H6KG946X5L;
+					};
+					CF71F5DB1003E284D9359EB5 = {
+						DevelopmentTeam = H6KG946X5L;
+						TestTargetID = 149D144E861CA3EDC923CA55;
+					};
+				};
 			};
 			buildConfigurationList = 6DECE65F9F88979B16A7833F /* Build configuration list for PBXProject "Picton" */;
-			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -186,10 +297,14 @@
 			);
 			mainGroup = 26318116CCEAE6BED48C7022;
 			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = B1E36E39C95160A6B4558B38 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				149D144E861CA3EDC923CA55 /* Picton */,
+				3A3AED140193FFE6EB474633 /* PictonTests */,
+				CF71F5DB1003E284D9359EB5 /* PictonUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -200,12 +315,21 @@
 			buildActionMask = 2147483647;
 			files = (
 				4C50D4F5DC5E57D064FE239C /* Assets.xcassets in Resources */,
+				6220D7EC950BCAC58FDE1647 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		D4BDF31FD00527620303A5E4 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				888C6388A135621E8F3A683A /* PictonUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		DF4BAF806FB5CB11B816C4A2 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -213,15 +337,16 @@
 				7FA3146E8AA004F29E16EA92 /* AddCardView.swift in Sources */,
 				2F3197E8DEA620F5F3A6B0FA /* CardExportImportService.swift in Sources */,
 				A51C24CC202385C4A01FABED /* CardGridItemView.swift in Sources */,
-				E5F7A9B1C3D5E7F9A1B3C5D7 /* CardImageView.swift in Sources */,
 				0EC2016EEF58229B2688718A /* CardGridView.swift in Sources */,
+				877103D29CBA03F2A573641A /* CardImageView.swift in Sources */,
 				DF1F9FEEF2601E5B7151E803 /* CardLibraryViewModel.swift in Sources */,
 				58E3D46184CE6AC5047C40D1 /* Constants.swift in Sources */,
 				57A0BDAA1006CCCA4B5B6D0D /* ContentView.swift in Sources */,
 				F5238899DF1BC3E53F9AF331 /* DataManagementView.swift in Sources */,
 				BDDD257ED3359D8A13D245B4 /* EditCardView.swift in Sources */,
-				D4E2A1B3F7C8D9E012345678 /* HiddenCardsListView.swift in Sources */,
+				D8AD0A0E4962241A1A64A6F4 /* HiddenCardsListView.swift in Sources */,
 				1442B9B23D96A8AB481A34DB /* ImageStorageService.swift in Sources */,
+				BFB6C2B12FCD795A497746EA /* JapaneseHolidayChecker.swift in Sources */,
 				1171CF5641BFEEABAFDF6C9E /* PictonApp.swift in Sources */,
 				0FE8BBEE7E3F8A53F59E0219 /* PictureCard.swift in Sources */,
 				795A09132931AF353A60CA4F /* PlaybackButtonView.swift in Sources */,
@@ -231,11 +356,37 @@
 				A16F7554EA6CC354F31F21F8 /* SentenceCardView.swift in Sources */,
 				8F0089AE407805BD917426B9 /* SentenceViewModel.swift in Sources */,
 				C1ACE57AF2B5D39A379CFBCB /* TTSService.swift in Sources */,
-				C4D6E8F0A2B4C6D8E0F2A4B6 /* WhenCategoryView.swift in Sources */,
+				D44D3BBC3339A23BDF721FAA /* WhenCategoryView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		E4BC2AF6D8FB6DB2061A059D /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5855476FD6BC469167B64F3F /* CardExportImportServiceTests.swift in Sources */,
+				9A7BB22D688AF32CDAC65DB9 /* ImageStorageServiceTests.swift in Sources */,
+				E0F5A5C61D534A1297BDBB55 /* JapaneseHolidayCheckerTests.swift in Sources */,
+				16AABF4545A0FA508372ACB2 /* PresetImageBootstrapperTests.swift in Sources */,
+				ADD8827DE6B01F3412F60270 /* SentenceViewModelTests.swift in Sources */,
+				C2FF68F733470C5D6ACA4AD6 /* TestImages.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		0969360B0FD5192A4CB09157 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 149D144E861CA3EDC923CA55 /* Picton */;
+			targetProxy = 716FCAF4606030D953D13A04 /* PBXContainerItemProxy */;
+		};
+		7185EBD71BAB6459DAC48926 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 149D144E861CA3EDC923CA55 /* Picton */;
+			targetProxy = F7550660364703B223A84348 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		1977EA80A72D7B720D45DBA5 /* Debug */ = {
@@ -246,6 +397,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H6KG946X5L;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "カードに使う画像を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "カードに使う画像を選ぶために写真ライブラリにアクセスします";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -264,6 +416,25 @@
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
+		};
+		23B457D62F634E6B7BC30974 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = H6KG946X5L;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.teraoka.PictonTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Picton.app/Picton";
+			};
+			name = Release;
 		};
 		24BB9F2AE6FC7B6199FA32C1 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -321,6 +492,44 @@
 			};
 			name = Release;
 		};
+		273A05FB7DD03CDEF70F61EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = H6KG946X5L;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.teraoka.PictonTests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Picton.app/Picton";
+			};
+			name = Debug;
+		};
+		747D88BF1B9BCC32AFC438EA /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = H6KG946X5L;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.teraoka.PictonUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Picton;
+			};
+			name = Debug;
+		};
 		8A95993D9F483F626C50163C /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -329,6 +538,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = H6KG946X5L;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSCameraUsageDescription = "カードに使う画像を撮影するためにカメラを使用します";
 				INFOPLIST_KEY_NSPhotoLibraryUsageDescription = "カードに使う画像を選ぶために写真ライブラリにアクセスします";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -411,6 +621,25 @@
 			};
 			name = Debug;
 		};
+		FBCB8D0B7A984A203F130BCB /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				DEVELOPMENT_TEAM = H6KG946X5L;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = me.teraoka.PictonUITests;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.9;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Picton;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -423,11 +652,29 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;
 		};
+		6D52685C8B53D8287E42C4D0 /* Build configuration list for PBXNativeTarget "PictonUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				747D88BF1B9BCC32AFC438EA /* Debug */,
+				FBCB8D0B7A984A203F130BCB /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		6DECE65F9F88979B16A7833F /* Build configuration list for PBXProject "Picton" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				90A8941C7E7FF4ABA2397006 /* Debug */,
 				24BB9F2AE6FC7B6199FA32C1 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		D3DFDFD76593100F3294B829 /* Build configuration list for PBXNativeTarget "PictonTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				273A05FB7DD03CDEF70F61EA /* Debug */,
+				23B457D62F634E6B7BC30974 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

@@ -15,14 +15,24 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
     /// 読み上げを試みるたびにリセットされるため、UI 側は変化を監視して案内を出す。
     var isJapaneseVoiceUnavailable = false
 
-    override init() {
+    /// 読み上げを行うか
+    ///
+    /// UI テストでは無効にする。CI のシミュレータでは初回の読み上げで
+    /// メインスレッドが 20〜30 秒止まり、その間の操作が取りこぼされてテストが不安定になるため。
+    /// 音声はテストで検証できないので、テストの対象外として切り離す。
+    private let isEnabled: Bool
+
+    init(isEnabled: Bool = !Constants.isUITesting) {
+        self.isEnabled = isEnabled
         super.init()
         synthesizer.delegate = self
-        configureAudioSession()
+        if isEnabled {
+            configureAudioSession()
+        }
     }
 
     func speak(_ text: String) {
-        guard !text.isEmpty else { return }
+        guard isEnabled, !text.isEmpty else { return }
 
         isJapaneseVoiceUnavailable = false
         guard let voice = preferredJapaneseVoice() else {

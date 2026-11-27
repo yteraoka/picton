@@ -2,13 +2,14 @@ import SwiftUI
 import SwiftData
 import UniformTypeIdentifiers
 
-struct CardGridView: View {
+struct CardGridView<Header: View>: View {
     let cards: [PictureCard]
     let onCardTap: (PictureCard) -> Void
-    let onCardLongPress: (PictureCard) -> Void
     let onAddTap: () -> Void
     var isEditMode: Bool = false
     var onReorder: ((PictureCard, PictureCard) -> Void)?
+    /// グリッドの上に表示し、グリッドと一緒にスクロールする内容（「いつ」カテゴリの日付カードなど）
+    @ViewBuilder var header: () -> Header
 
     @State private var draggedCard: PictureCard?
     // ドラッグが動き出してから元セルを隠す（リフトプレビューの
@@ -25,17 +26,21 @@ struct CardGridView: View {
 
     var body: some View {
         ScrollView {
-            LazyVGrid(columns: columns, spacing: 10) {
-                ForEach(cards, id: \.id) { card in
-                    cardItem(for: card)
-                }
+            VStack(alignment: .leading, spacing: 0) {
+                header()
 
-                if isEditMode {
-                    addButton
+                LazyVGrid(columns: columns, spacing: 10) {
+                    ForEach(cards, id: \.id) { card in
+                        cardItem(for: card)
+                    }
+
+                    if isEditMode {
+                        addButton
+                    }
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
         }
         .onDrop(of: [.text], delegate: CardDropCleanupDelegate(
             draggedCard: $draggedCard,
@@ -54,7 +59,6 @@ struct CardGridView: View {
         let item = CardGridItemView(
             card: card,
             onTap: { onCardTap(card) },
-            onLongPress: { onCardLongPress(card) },
             isEditMode: isEditMode
         )
 
@@ -117,6 +121,25 @@ struct CardGridView: View {
         }
         .buttonStyle(.plain)
         .accessibilityLabel("カードを追加")
+    }
+}
+
+extension CardGridView where Header == EmptyView {
+    init(
+        cards: [PictureCard],
+        onCardTap: @escaping (PictureCard) -> Void,
+        onAddTap: @escaping () -> Void,
+        isEditMode: Bool = false,
+        onReorder: ((PictureCard, PictureCard) -> Void)? = nil
+    ) {
+        self.init(
+            cards: cards,
+            onCardTap: onCardTap,
+            onAddTap: onAddTap,
+            isEditMode: isEditMode,
+            onReorder: onReorder,
+            header: { EmptyView() }
+        )
     }
 }
 

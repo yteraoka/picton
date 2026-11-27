@@ -1,0 +1,22 @@
+version: 2
+updates:
+  # ワークフローの Action はコミットハッシュで固定しているので、
+  # Dependabot にハッシュと `# vX.Y.Z` のコメントを合わせて更新させる
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+      time: "09:00"
+      timezone: Asia/Tokyo
+    # リリース直後のバージョンは取り込まない（乗っ取られたリリースが
+    # 公開されても、検知・取り下げまでの間に取り込まないようにする）
+    cooldown:
+      default-days: 7
+    # 更新は 1 つの PR にまとめる
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+    commit-message:
+      prefix: ci

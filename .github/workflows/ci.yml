@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build & Test
+    runs-on: macos-26
+    timeout-minutes: 45
+    env:
+      # ローカルで使っている xcodegen と揃える（バージョン差で pbxproj の出力が変わるため）
+      XCODEGEN_VERSION: "2.49.0"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Check project.pbxproj is generated from project.yml
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/xcodegen.zip" \
+            "https://github.com/yonaskolb/XcodeGen/releases/download/${XCODEGEN_VERSION}/xcodegen.zip"
+          unzip -q "$RUNNER_TEMP/xcodegen.zip" -d "$RUNNER_TEMP"
+          "$RUNNER_TEMP/xcodegen/bin/xcodegen" generate
+          if [ -n "$(git status --porcelain -- Picton.xcodeproj)" ]; then
+            git status --short -- Picton.xcodeproj
+            git diff -- Picton.xcodeproj
+            echo "::error::Picton.xcodeproj が project.yml と一致しません。project.yml を編集して 'xcodegen generate' した結果をコミットしてください"
+            exit 1
+          fi
+
+      - name: Select iOS simulator
+        run: |
+          udid=$(xcrun simctl list devices available -j | jq -r '
+            [.devices | to_entries[]
+              | select(.key | test("SimRuntime\\.iOS-26"))
+              | .value[] | select(.name | startswith("iPhone"))]
+            | first | .udid // empty')
+          if [ -z "$udid" ]; then
+            xcrun simctl list devices available
+            echo "::error::iOS 26 の iPhone シミュレータが見つかりません"
+            exit 1
+          fi
+          xcrun simctl list devices | grep "$udid"
+          echo "SIMULATOR_UDID=$udid" >> "$GITHUB_ENV"
+
+      - name: Build for testing
+        run: |
+          set -o pipefail
+          xcodebuild build-for-testing \
+            -project Picton.xcodeproj -scheme Picton \
+            -destination "id=$SIMULATOR_UDID" \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO
+
+      - name: Unit tests
+        run: |
+          set -o pipefail
+          xcodebuild test-without-building \
+            -project Picton.xcodeproj -scheme Picton \
+            -destination "id=$SIMULATOR_UDID" \
+            -derivedDataPath build \
+            -only-testing:PictonTests \
+            -resultBundlePath results/unit.xcresult
+
+      - name: UI tests
+        run: |
+          set -o pipefail
+          # ドラッグ操作はランナーの負荷で揺れることがあるため 1 回だけ再試行する
+          xcodebuild test-without-building \
+            -project Picton.xcodeproj -scheme Picton \
+            -destination "id=$SIMULATOR_UDID" \
+            -derivedDataPath build \
+            -only-testing:PictonUITests \
+            -parallel-testing-enabled NO \
+            -retry-tests-on-failure -test-iterations 2 \
+            -resultBundlePath results/ui.xcresult
+
+      # 再試行で成功した場合も失敗時のスクリーンショットや UI 階層を調べられるよう、常に保存する
+      - name: Upload test results
+        if: ${{ !cancelled() && hashFiles('results/**') != '' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: xcresult
+          path: results/
+          retention-days: 7
