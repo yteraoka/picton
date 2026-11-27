@@ -1,0 +1,1 @@
+Dependabot で GitHub Actions を更新するよう設定して
