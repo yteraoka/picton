@@ -28,6 +28,7 @@ struct PresetImageBootstrapperTests {
 
         let presets = try fetchPresets()
         #expect(presets.map(\.presetImageName) == PresetCardData.all.map(\.sfSymbol))
+        #expect(presets.map(\.presetID) == PresetCardData.all.map(\.id))
         #expect(presets.map(\.sortOrder) == Array(0..<PresetCardData.all.count))
     }
 
@@ -62,6 +63,8 @@ struct PresetImageBootstrapperTests {
         let added = presets.dropFirst(2)
         #expect(added.map(\.presetImageName) == PresetCardData.all.dropFirst(2).map(\.sfSymbol))
         #expect(added.map(\.sortOrder) == Array(11..<(11 + added.count)))
+        // presetID を持たなかった既存 2 件にも ID が補完される
+        #expect(presets.prefix(2).map(\.presetID) == existing.map(\.id))
     }
 
     @Test func removesDeletedPresetsButKeepsCustomCards() throws {
@@ -88,9 +91,134 @@ struct PresetImageBootstrapperTests {
         #expect(customs.map(\.displayName) == ["マイ渋谷"])
     }
 
-    @Test func presetDefinitionsHaveUniqueSymbols() {
-        // addNewPresets は sfSymbol で既存判定するため、重複があると追加漏れになる
-        let symbols = PresetCardData.all.map(\.sfSymbol)
-        #expect(Set(symbols).count == symbols.count)
+    @Test func presetDefinitionsHaveUniqueIDs() {
+        // presetID で既存判定するため、重複があると追加漏れになる
+        let ids = PresetCardData.all.map(\.id)
+        #expect(Set(ids).count == ids.count)
+    }
+
+    // MARK: - presetID の補完と ID ベースの同期 (#34)
+
+    private func definition(_ id: String) throws -> PresetCardDefinition {
+        try #require(PresetCardData.all.first { $0.id == id })
+    }
+
+    /// presetID 導入前の古いレコード（presetID なし）を挿入する
+    @discardableResult
+    private func insertLegacyPreset(
+        _ displayName: String, category: String, symbol: String, sortOrder: Int, isHidden: Bool = false
+    ) -> PictureCard {
+        let card = PictureCard(
+            displayName: displayName, kanaText: displayName, category: category,
+            isPreset: true, presetImageName: symbol, sortOrder: sortOrder, isHidden: isHidden
+        )
+        context.insert(card)
+        return card
+    }
+
+    /// 全定義について、古いレコードを用意した状態を作る
+    private func insertAllLegacyPresets() {
+        for (index, definition) in PresetCardData.all.enumerated() {
+            insertLegacyPreset(definition.displayName, category: definition.category,
+                               symbol: definition.sfSymbol, sortOrder: index)
+        }
+    }
+
+    @Test func backfillsPresetIDsWithoutAddingDuplicates() throws {
+        insertAllLegacyPresets()
+        try context.save()
+
+        PresetImageBootstrapper.bootstrapIfNeeded(context: context)
+
+        let presets = try fetchPresets()
+        #expect(presets.count == PresetCardData.all.count)
+        #expect(presets.map(\.presetID) == PresetCardData.all.map(\.id))
+    }
+
+    /// 「歩き」を figure.walk で追加した旧バージョンの状態（「行きたい」とシンボルが重複）と、
+    /// その後 figure.walk.motion に変えたバージョンで重複追加された「歩き」が混在していても、
+    /// 「行きたい」と「歩き」が 1 枚ずつになる
+    @Test func resolvesWalkSymbolCollisionAndDuplicate() throws {
+        let walk = try definition("transport.walk")
+        let wantToGo = try definition("action.want_to_go")
+        for (index, definition) in PresetCardData.all.enumerated() where definition.id != walk.id {
+            insertLegacyPreset(definition.displayName, category: definition.category,
+                               symbol: definition.sfSymbol, sortOrder: index)
+        }
+        let oldWalk = insertLegacyPreset(walk.displayName, category: walk.category,
+                                         symbol: "figure.walk", sortOrder: 100)
+        insertLegacyPreset(walk.displayName, category: walk.category,
+                           symbol: "figure.walk.motion", sortOrder: 101)
+        try context.save()
+
+        PresetImageBootstrapper.bootstrapIfNeeded(context: context)
+
+        let presets = try fetchPresets()
+        #expect(presets.count == PresetCardData.all.count)
+        let walks = presets.filter { $0.presetID == walk.id }
+        #expect(walks.count == 1)
+        // sortOrder が小さい方が残り、シンボルは現在の定義に追従する
+        #expect(walks.first?.id == oldWalk.id)
+        #expect(walks.first?.presetImageName == walk.sfSymbol)
+        let wantToGos = presets.filter { $0.presetID == wantToGo.id }
+        #expect(wantToGos.count == 1)
+        #expect(wantToGos.first?.presetImageName == "figure.walk")
+    }
+
+    /// 表示名を編集した古いプリセットはシンボルで照合され、編集内容は保たれる
+    @Test func backfillsRenamedPresetBySymbol() throws {
+        let park = try definition("place.park")
+        insertAllLegacyPresets()
+        try context.save()
+        let renamed = try #require(try fetchPresets().first { $0.displayName == park.displayName })
+        renamed.displayName = "いつもの公園"
+        renamed.kanaText = "いつものこうえん"
+        try context.save()
+
+        PresetImageBootstrapper.bootstrapIfNeeded(context: context)
+
+        let presets = try fetchPresets()
+        #expect(presets.count == PresetCardData.all.count)
+        #expect(renamed.presetID == park.id)
+        #expect(renamed.displayName == "いつもの公園")
+        #expect(renamed.kanaText == "いつものこうえん")
+        #expect(!presets.contains { $0.displayName == park.displayName })
+    }
+
+    /// どの定義にも対応しない古いプリセットは消さずに残す
+    @Test func keepsUnmatchedLegacyPresets() throws {
+        insertAllLegacyPresets()
+        insertLegacyPreset("ふしぎ", category: "生活", symbol: "questionmark", sortOrder: 200)
+        try context.save()
+
+        PresetImageBootstrapper.bootstrapIfNeeded(context: context)
+
+        let presets = try fetchPresets()
+        #expect(presets.count == PresetCardData.all.count + 1)
+        let unmatched = try #require(presets.first { $0.displayName == "ふしぎ" })
+        #expect(unmatched.presetID == nil)
+    }
+
+    /// 定義側でシンボルを変えると既存カードの画像が追従し、利用者の編集は上書きしない
+    @Test func symbolChangeUpdatesExistingCardKeepingUserEdits() throws {
+        let park = try definition("place.park")
+        PresetImageBootstrapper.bootstrapIfNeeded(context: context)
+        let card = try #require(try fetchPresets().first { $0.presetID == park.id })
+        card.presetImageName = "old.symbol"
+        card.displayName = "こうえん！"
+        card.category = "生活"
+        card.isHidden = true
+        card.sortOrder = 99
+        try context.save()
+
+        PresetImageBootstrapper.bootstrapIfNeeded(context: context)
+
+        let presets = try fetchPresets()
+        #expect(presets.count == PresetCardData.all.count)
+        #expect(card.presetImageName == park.sfSymbol)
+        #expect(card.displayName == "こうえん！")
+        #expect(card.category == "生活")
+        #expect(card.isHidden)
+        #expect(card.sortOrder == 99)
     }
 }
