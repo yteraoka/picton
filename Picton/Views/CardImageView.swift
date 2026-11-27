@@ -1,10 +1,19 @@
 import SwiftUI
 
 struct CardImageView: View {
-    let card: PictureCard
+    let card: CardSnapshot
     var symbolFont: Font = .title2
 
     @State private var customImage: UIImage?
+
+    init(card: CardSnapshot, symbolFont: Font = .title2) {
+        self.card = card
+        self.symbolFont = symbolFont
+    }
+
+    init(card: PictureCard, symbolFont: Font = .title2) {
+        self.init(card: CardSnapshot(card), symbolFont: symbolFont)
+    }
 
     var body: some View {
         Group {
@@ -26,9 +35,9 @@ struct CardImageView: View {
                     .foregroundStyle(.gray)
             }
         }
-        .task(id: card.id) {
-            guard !card.isPreset else { return }
-            customImage = await Task.detached { ImageStorageService.load(id: card.id) }.value
+        .task(id: card.cardID) {
+            guard !card.isPreset, let id = card.cardID else { return }
+            customImage = await Task.detached { ImageStorageService.load(id: id) }.value
         }
     }
 }

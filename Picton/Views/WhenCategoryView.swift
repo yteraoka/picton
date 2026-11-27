@@ -2,7 +2,7 @@ import SwiftUI
 
 struct WhenCategoryView: View {
     let isInteractive: Bool
-    let onCardTap: (PictureCard) -> Void
+    let onCardTap: (CardSnapshot) -> Void
 
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
 
@@ -89,14 +89,7 @@ struct WhenCategoryView: View {
     private func presetButton(_ displayName: String, kana: String, symbol: String, date: Date) -> some View {
         let color = categoryColor(for: "いつ")
         Button {
-            let card = PictureCard(
-                displayName: displayName,
-                kanaText: kana,
-                category: "いつ",
-                isPreset: true,
-                presetImageName: symbol
-            )
-            onCardTap(card)
+            onCardTap(whenCard(displayName, kana: kana, symbol: symbol))
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         } label: {
             VStack(spacing: 6) {
@@ -141,31 +134,38 @@ struct WhenCategoryView: View {
         return formatter.string(from: date)
     }
 
-    private func cardForSelectedDate(_ date: Date) -> PictureCard {
+    /// 「いつ」カテゴリのカードは DB に保存しない一時的なカードなので cardID は nil
+    private func whenCard(_ displayName: String, kana: String, symbol: String) -> CardSnapshot {
+        CardSnapshot(
+            cardID: nil,
+            displayName: displayName,
+            kanaText: kana,
+            category: "いつ",
+            isPreset: true,
+            presetImageName: symbol
+        )
+    }
+
+    private func cardForSelectedDate(_ date: Date) -> CardSnapshot {
         let d = Calendar.current.startOfDay(for: date)
         if d == today {
-            return PictureCard(displayName: "きょう", kanaText: "きょう", category: "いつ",
-                               isPreset: true, presetImageName: "sun.max.fill")
+            return whenCard("きょう", kana: "きょう", symbol: "sun.max.fill")
         } else if d == tomorrow {
-            return PictureCard(displayName: "あした", kanaText: "あした", category: "いつ",
-                               isPreset: true, presetImageName: "moon.stars.fill")
+            return whenCard("あした", kana: "あした", symbol: "moon.stars.fill")
         } else if d == dayAfterTomorrow {
-            return PictureCard(displayName: "あさって", kanaText: "あさって", category: "いつ",
-                               isPreset: true, presetImageName: "calendar.badge.plus")
+            return whenCard("あさって", kana: "あさって", symbol: "calendar.badge.plus")
         }
         return makeDateCard(for: date)
     }
 
-    private func makeDateCard(for date: Date) -> PictureCard {
+    private func makeDateCard(for date: Date) -> CardSnapshot {
         let cal = Calendar.current
         let month = cal.component(.month, from: date)
         let day = cal.component(.day, from: date)
-        return PictureCard(
-            displayName: "\(month)月\(day)日",
-            kanaText: dateKana(month: month, day: day),
-            category: "いつ",
-            isPreset: true,
-            presetImageName: "calendar"
+        return whenCard(
+            "\(month)月\(day)日",
+            kana: dateKana(month: month, day: day),
+            symbol: "calendar"
         )
     }
 

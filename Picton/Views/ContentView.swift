@@ -152,6 +152,10 @@ struct ContentView: View {
         .sheet(isPresented: $showDataManagement) {
             DataManagementView()
         }
+        // カードの削除・編集を文エリアに反映する（削除済みの @Model を参照し続けないため）
+        .onChange(of: allCards.map { CardSnapshot($0) }) { _, cards in
+            sentenceVM.sync(with: cards)
+        }
         .onChange(of: ttsService.isJapaneseVoiceUnavailable) { _, unavailable in
             if unavailable { showVoiceUnavailableAlert = true }
         }
@@ -195,7 +199,7 @@ struct ContentView: View {
                         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     } else {
                         withAnimation(.easeInOut(duration: 0.2)) {
-                            sentenceVM.append(card)
+                            sentenceVM.append(CardSnapshot(card))
                         }
                         ttsService.speak(card.kanaText)
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
