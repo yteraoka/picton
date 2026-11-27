@@ -1,0 +1,15 @@
+<task-notification>
+<task-id>b7h1874ui</task-id>
+<tool-use-id>toolu_012kJnyiA9takt3zZp2HdAwi</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-teraoka-ghq-github-com-yteraoka-picton/58b28800-e54a-4239-954e-4f999c0d98c1/tasks/b7h1874ui.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for CI on PR #74" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+Issue を作成して
+
+---
+
+merge しました。次に Issue #75 に対応してください
