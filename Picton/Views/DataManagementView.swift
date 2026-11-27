@@ -107,8 +107,11 @@ struct DataManagementView: View {
 
     private func performImport(url: URL) {
         do {
-            let count = try CardExportImportService.importCards(from: url, context: modelContext)
-            alertMessage = "\(count) 枚のカードをインポートしました"
+            let result = try CardExportImportService.importCards(from: url, context: modelContext)
+            alertMessage = "\(result.importedCount) 枚のカードをインポートしました"
+            if result.skippedImageCount > 0 {
+                alertMessage? += "\n\n\(result.skippedImageCount) 枚は画像を読み込めなかったため、画像なしで追加しました"
+            }
             showAlert = true
         } catch {
             alertMessage = "インポート失敗: \(error.localizedDescription)"

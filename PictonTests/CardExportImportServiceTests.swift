@@ -151,8 +151,8 @@ struct CardExportImportServiceTests {
         try zip.write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let count = try Service.importCards(from: url, context: context)
-        #expect(count == 2)
+        let result = try Service.importCards(from: url, context: context)
+        #expect(result == .init(importedCount: 2, skippedImageCount: 0))
 
         let imported = try context.fetch(FetchDescriptor<PictureCard>(
             predicate: #Predicate { $0.category == "生活" },
@@ -166,6 +166,53 @@ struct CardExportImportServiceTests {
         // 画像は新しい UUID で保存される
         #expect(ImageStorageService.load(id: imported[0].id) != nil)
         #expect(ImageStorageService.load(id: imported[1].id) == nil)
+    }
+
+    /// #52: ZIP 内の画像は検証・再エンコードしてから保存し、読めないものは画像なしで取り込む
+    @MainActor
+    @Test func importSanitizesImages() throws {
+        let container = try ModelContainer(
+            for: PictureCard.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let context = container.mainContext
+
+        let payload = """
+        {"version":1,"exportedAt":"2026-11-26T00:00:00Z","cards":[
+          {"displayName":"写真","kanaText":"しゃしん","category":"生活","hasImage":true,"imageFileName":"photo.jpg"},
+          {"displayName":"偽物","kanaText":"にせもの","category":"生活","hasImage":true,"imageFileName":"fake.jpg"},
+          {"displayName":"巨大","kanaText":"きょだい","category":"生活","hasImage":true,"imageFileName":"bomb.jpg"}
+        ]}
+        """
+        let zip = Service.buildZip(entries: [
+            ("cards.json", Data(payload.utf8)),
+            ("images/photo.jpg", TestImages.jpeg(width: 2000, height: 1000, withGPS: true)),
+            ("images/fake.jpg", Data("this is not an image".utf8)),
+            ("images/bomb.jpg", TestImages.compressionBombPNG(width: 8000, height: 8000)),
+        ])
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("import-sanitize-\(UUID().uuidString).zip")
+        try zip.write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let result = try Service.importCards(from: url, context: context)
+        #expect(result == .init(importedCount: 3, skippedImageCount: 2))
+
+        let imported = try context.fetch(FetchDescriptor<PictureCard>(sortBy: [SortDescriptor(\.sortOrder)]))
+        defer { imported.forEach { ImageStorageService.delete(id: $0.id) } }
+        #expect(imported.map(\.displayName) == ["写真", "偽物", "巨大"])
+
+        // 正常な画像は再エンコードされ、位置情報が除去され、カード用のサイズに縮小されている
+        let stored = try #require(TestImages.properties(ofFileAt: TestImages.storedImageURL(id: imported[0].id)))
+        #expect(stored[kCGImagePropertyGPSDictionary] == nil)
+        let width = try #require(stored[kCGImagePropertyPixelWidth] as? Int)
+        #expect(width <= ImageStorageService.maxDecodedPixelSize)
+
+        // 画像として読めないもの・大きすぎるものはファイル自体を保存しない
+        for card in imported.dropFirst() {
+            #expect(!FileManager.default.fileExists(atPath: TestImages.storedImageURL(id: card.id).path))
+            #expect(ImageStorageService.load(id: card.id) == nil)
+        }
     }
 
     @MainActor
