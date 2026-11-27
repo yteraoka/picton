@@ -12,8 +12,7 @@ struct DataManagementView: View {
     @State private var alertMessage: String?
     @State private var showAlert = false
     @State private var isImporting = false
-    @State private var importCompleted = 0
-    @State private var importTotal = 0
+    @State private var importProgress = ImportProgress()
 
     var body: some View {
         NavigationStack {
@@ -57,7 +56,7 @@ struct DataManagementView: View {
             .disabled(isImporting)
             .overlay {
                 if isImporting {
-                    ImportProgressView(completed: importCompleted, total: importTotal)
+                    ImportProgressView(completed: importProgress.completed, total: importProgress.total)
                 }
             }
             .navigationTitle("データ管理")
@@ -119,8 +118,8 @@ struct DataManagementView: View {
 
     /// 読み込み・画像処理はバックグラウンドで行い、その間は進捗を表示して操作を止める
     private func performImport(url: URL) {
-        importCompleted = 0
-        importTotal = 0
+        importProgress.reset()
+        let progress = importProgress
         isImporting = true
         Task {
             do {
@@ -128,10 +127,8 @@ struct DataManagementView: View {
                     from: url,
                     context: modelContext
                 ) { completed, total in
-                    Task { @MainActor in
-                        importCompleted = completed
-                        importTotal = total
-                    }
+                    // バックグラウンドから呼ばれるため、View ではなく進捗オブジェクトに渡す (#62)
+                    Task { @MainActor in progress.update(completed: completed, total: total) }
                 }
                 if result.importedCount == 0, result.skippedDuplicateCount > 0 {
                     alertMessage = "すべてのカード（\(result.skippedDuplicateCount) 枚）は追加済みのため、何も追加しませんでした"
@@ -154,6 +151,24 @@ struct DataManagementView: View {
 }
 
 /// インポート中に画面を覆って表示する進捗
+/// インポートの進捗。バックグラウンドの処理から、メインアクター上で更新する
+@MainActor
+@Observable
+private final class ImportProgress {
+    private(set) var completed = 0
+    private(set) var total = 0
+
+    func reset() {
+        completed = 0
+        total = 0
+    }
+
+    func update(completed: Int, total: Int) {
+        self.completed = completed
+        self.total = total
+    }
+}
+
 private struct ImportProgressView: View {
     let completed: Int
     let total: Int

@@ -216,7 +216,7 @@ struct ImageStorageServiceTests {
         let id = UUID()
         defer { ImageStorageService.delete(id: id) }
         let source = UIImage(cgImage: TestImages.cgImage(width: 500, height: 500))
-        try ImageStorageService.save(image: source, id: id)
+        _ = try ImageStorageService.save(image: source, id: id)
         #expect(ImageStorageService.load(id: id) != nil)
     }
 }

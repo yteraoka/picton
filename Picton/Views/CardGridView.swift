@@ -19,6 +19,9 @@ struct CardGridView<Header: View>: View {
     // セッションが始まっていると古い解放が新しい状態を消してしまう。
     // セッションごとのトークンで古い provider の後始末を無効化する
     @State private var dragToken = UUID()
+    // provider の解放（ドラッグ終了）の知らせを受け取る。どのスレッドで解放されるか決まっていないため、
+    // View を直接捕捉せず、メインアクターのオブジェクト経由で受け取る (#62)
+    @State private var dragEnd = DragEndSignal()
 
     private let columns = [
         GridItem(.adaptive(minimum: Constants.gridItemMinSize), spacing: 10)
@@ -52,6 +55,12 @@ struct CardGridView<Header: View>: View {
                 isDragActive = false
             }
         }
+        .onChange(of: dragEnd.endedToken) { _, endedToken in
+            // 古いセッションの provider が遅れて解放された場合は無視する
+            guard endedToken == dragToken else { return }
+            draggedCard = nil
+            isDragActive = false
+        }
     }
 
     @ViewBuilder
@@ -72,15 +81,9 @@ struct CardGridView<Header: View>: View {
                     draggedCard = card
                     // この provider へのドロップイベントはまだ届いていない
                     isDragActive = false
-                    let provider = DragSessionItemProvider(object: card.id.uuidString as NSString)
-                    provider.didEnd = {
-                        Task { @MainActor in
-                            guard dragToken == token else { return }
-                            draggedCard = nil
-                            isDragActive = false
-                        }
+                    return DragSessionItemProvider(cardID: card.id) { [dragEnd] in
+                        dragEnd.endedToken = token
                     }
-                    return provider
                 }
                 .onDrop(of: [.text], delegate: CardReorderDropDelegate(
                     card: card,
@@ -146,9 +149,29 @@ extension CardGridView where Header == EmptyView {
 /// ドラッグセッションの終了（画面外ドロップやキャンセルを含む）を検知するための NSItemProvider
 /// SwiftUI にはドラッグ終了のコールバックがないため、システムがセッション終了時に
 /// provider を解放することを利用して後始末する
+///
+/// 解放（deinit）はどのスレッドで起きるか決まっていないため、後始末はメインアクターで実行する (#62)。
 private final class DragSessionItemProvider: NSItemProvider {
-    var didEnd: (() -> Void)?
-    deinit { didEnd?() }
+    private let onEnd: @MainActor @Sendable () -> Void
+
+    init(cardID: UUID, onEnd: @escaping @MainActor @Sendable () -> Void) {
+        self.onEnd = onEnd
+        super.init()
+        // NSItemProvider(object:) と同じく、カード ID を文字列として渡す
+        registerObject(cardID.uuidString as NSString, visibility: .all)
+    }
+
+    deinit {
+        let onEnd = onEnd
+        Task { @MainActor in onEnd() }
+    }
+}
+
+/// ドラッグセッションの終了の知らせ。最後に終了したセッションのトークンを持つ
+@MainActor
+@Observable
+private final class DragEndSignal {
+    var endedToken: UUID?
 }
 
 /// ドラッグ中にカードへ重なった時点でリアルタイムに並べ替える DropDelegate
