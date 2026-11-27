@@ -18,6 +18,9 @@ final class PictureCard: Identifiable {
     var sortOrder: Int
     var createdAt: Date
     var isHidden: Bool = false
+    /// 画像を差し替えるたびに増やす番号。画像ファイル名（UUID）は変わらないため、
+    /// 表示側はこの値の変化で画像を読み直す (#56)
+    var imageVersion: Int = 0
 
     init(
         id: UUID = UUID(),
@@ -60,6 +63,8 @@ struct CardSnapshot: Hashable {
     let category: String
     let isPreset: Bool
     let presetImageName: String?
+    /// `PictureCard.imageVersion`。画像の差し替えを表示に反映するために使う
+    let imageVersion: Int
 
     init(
         cardID: UUID?,
@@ -67,7 +72,8 @@ struct CardSnapshot: Hashable {
         kanaText: String,
         category: String,
         isPreset: Bool,
-        presetImageName: String?
+        presetImageName: String?,
+        imageVersion: Int = 0
     ) {
         self.cardID = cardID
         self.displayName = displayName
@@ -75,6 +81,7 @@ struct CardSnapshot: Hashable {
         self.category = category
         self.isPreset = isPreset
         self.presetImageName = presetImageName
+        self.imageVersion = imageVersion
     }
 
     init(_ card: PictureCard) {
@@ -84,7 +91,8 @@ struct CardSnapshot: Hashable {
             kanaText: card.kanaText,
             category: card.category,
             isPreset: card.isPreset,
-            presetImageName: card.presetImageName
+            presetImageName: card.presetImageName,
+            imageVersion: card.imageVersion
         )
     }
 }
