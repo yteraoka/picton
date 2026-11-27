@@ -10,7 +10,10 @@ struct EditCardView: View {
     @State private var displayName: String
     @State private var kanaText: String
     @State private var selectedCategory: String
-    @State private var selectedImage: UIImage?
+    /// 保存済みの画像（プレビュー表示用。保存時に書き戻さない）
+    @State private var existingImage: UIImage?
+    /// 写真選択・カメラで差し替えた画像。nil なら画像は変更しない
+    @State private var newImage: UIImage?
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var showCamera = false
     @State private var showDeleteConfirmation = false
@@ -24,10 +27,9 @@ struct EditCardView: View {
         _kanaText = State(initialValue: card.kanaText)
         _selectedCategory = State(initialValue: card.category)
         _isHidden = State(initialValue: card.isHidden)
-        if !card.isPreset {
-            _selectedImage = State(initialValue: ImageStorageService.load(id: card.id))
-        }
     }
+
+    private var previewImage: UIImage? { newImage ?? existingImage }
 
     var body: some View {
         NavigationStack {
@@ -35,7 +37,7 @@ struct EditCardView: View {
                 if !card.isPreset {
                     Section("画像") {
                         HStack {
-                            if let image = selectedImage {
+                            if let image = previewImage {
                                 Image(uiImage: image)
                                     .resizable()
                                     .scaledToFill()
@@ -108,13 +110,19 @@ struct EditCardView: View {
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {
-                        selectedImage = uiImage
+                        newImage = uiImage
                     }
                 }
             }
             .fullScreenCover(isPresented: $showCamera) {
-                CameraView(image: $selectedImage)
+                CameraView(image: $newImage)
                     .ignoresSafeArea()
+            }
+            .task {
+                // 保存済みの画像はプレビューのためだけに非同期で読み込む
+                guard !card.isPreset else { return }
+                let id = card.id
+                existingImage = await Task.detached { ImageStorageService.load(id: id) }.value
             }
             .alert("カードを削除しますか？", isPresented: $showDeleteConfirmation) {
                 Button("削除", role: .destructive) { deleteCard() }
@@ -131,7 +139,9 @@ struct EditCardView: View {
         card.category = selectedCategory
         card.isHidden = isHidden
 
-        if !card.isPreset, let image = selectedImage {
+        // 画像を差し替えたときだけ保存する。保存済みの画像を毎回読み直して
+        // 再圧縮すると、編集のたびに JPEG の画質が劣化するため (#55)
+        if !card.isPreset, let image = newImage {
             _ = try? ImageStorageService.save(image: image, id: card.id)
         }
 
