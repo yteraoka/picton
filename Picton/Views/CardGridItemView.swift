@@ -3,7 +3,6 @@ import SwiftUI
 struct CardGridItemView: View {
     let card: PictureCard
     let onTap: () -> Void
-    let onLongPress: () -> Void
     var isEditMode: Bool = false
 
     var body: some View {
@@ -41,12 +40,6 @@ struct CardGridItemView: View {
             )
         }
         .buttonStyle(.plain)
-        .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.5)
-                .onEnded { _ in
-                    onLongPress()
-                }
-        )
         .accessibilityLabel(card.displayName)
         .accessibilityHint(isEditMode ? "タップで編集、ドラッグして並べ替え" : "タップして文に追加")
     }
