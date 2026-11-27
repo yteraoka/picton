@@ -20,21 +20,52 @@ final class PictonUITests: XCTestCase {
         }
     }
 
-    /// 前後のカテゴリも画面外に描画されているため、操作できるものを選ぶ
-    private func card(_ name: String) -> XCUIElement {
-        app.buttons.matching(identifier: name).allElementsBoundByIndex.first { $0.isHittable }
-            ?? app.buttons[name].firstMatch
+    /// 画面内にあるカードを返す
+    ///
+    /// 前後のカテゴリも画面外に描画されているため、同じラベルの要素が複数ある。
+    /// `isHittable` はカテゴリ切り替えのアニメーション中の要素や画面外の要素に対して
+    /// false を返さず「Activation point invalid」でテストを失敗させるので使わず、
+    /// フレームの中心がウィンドウ内にあるかで判定する。
+    private func onScreenCard(_ name: String) -> XCUIElement? {
+        let window = app.windows.firstMatch.frame
+        return app.buttons.matching(identifier: name).allElementsBoundByIndex.first { element in
+            let frame = element.frame
+            return !frame.isEmpty && window.contains(CGPoint(x: frame.midX, y: frame.midY))
+        }
     }
 
-    private func selectCategory(_ category: String) {
+    private func card(_ name: String, file: StaticString = #filePath, line: UInt = #line) -> XCUIElement {
+        guard let element = onScreenCard(name) else {
+            XCTFail("「\(name)」が画面内に見つからない", file: file, line: line)
+            return app.buttons[name].firstMatch
+        }
+        return element
+    }
+
+    /// カードが画面内に現れ、位置が止まる（アニメーションが終わる）まで待つ
+    private func waitForCardToSettle(_ name: String, timeout: TimeInterval = 10) -> Bool {
+        var lastFrame: CGRect?
+        let settled = NSPredicate { _, _ in
+            guard let frame = self.onScreenCard(name)?.frame else {
+                lastFrame = nil
+                return false
+            }
+            defer { lastFrame = frame }
+            return frame == lastFrame
+        }
+        let expectation = XCTNSPredicateExpectation(predicate: settled, object: nil)
+        return XCTWaiter.wait(for: [expectation], timeout: timeout) == .completed
+    }
+
+    private func selectCategory(_ category: String, expecting cardName: String) {
         let tab = app.buttons["\(category)カテゴリ"]
         XCTAssertTrue(tab.waitForExistence(timeout: 5))
         tab.tap()
-        XCTAssertTrue(card("くるま").waitForExistence(timeout: 5))
+        XCTAssertTrue(waitForCardToSettle(cardName), "「\(category)」カテゴリに切り替わっていない")
     }
 
     func testAddCardsToSentenceAndClear() {
-        selectCategory("手段")
+        selectCategory("手段", expecting: "くるま")
 
         card("くるま").tap()
         card("電車").tap()
@@ -52,7 +83,7 @@ final class PictonUITests: XCTestCase {
 
     /// PR #32: 編集モードでドラッグするとリアルタイムに並べ替わる
     func testReorderByDragInEditMode() {
-        selectCategory("手段")
+        selectCategory("手段", expecting: "くるま")
         app.buttons["編集モード"].tap()
         XCTAssertTrue(app.buttons["編集モード終了"].waitForExistence(timeout: 3))
 
@@ -66,7 +97,8 @@ final class PictonUITests: XCTestCase {
 
         // ドロップ後のアニメーションを待ってから位置を比べる
         let swapped = NSPredicate { _, _ in
-            self.card("電車").frame.minX < self.card("くるま").frame.minX
+            guard let train = self.onScreenCard("電車"), let car = self.onScreenCard("くるま") else { return false }
+            return train.frame.minX < car.frame.minX
         }
         let expectation = XCTNSPredicateExpectation(predicate: swapped, object: nil)
         XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 5), .completed, "電車 → くるま の順に並べ替わっていない")
