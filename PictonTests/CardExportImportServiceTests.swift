@@ -122,7 +122,7 @@ struct CardExportImportServiceTests {
     // MARK: - Import
 
     @MainActor
-    @Test func importAddsCardsAfterExistingOnes() throws {
+    @Test func importAddsCardsAfterExistingOnes() async throws {
         let container = try ModelContainer(
             for: PictureCard.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
@@ -151,7 +151,7 @@ struct CardExportImportServiceTests {
         try zip.write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let result = try Service.importCards(from: url, context: context)
+        let result = try await Service.importCards(from: url, context: context)
         #expect(result == .init(importedCount: 2, skippedImageCount: 0))
 
         let imported = try context.fetch(FetchDescriptor<PictureCard>(
@@ -170,7 +170,7 @@ struct CardExportImportServiceTests {
 
     /// #52: ZIP 内の画像は検証・再エンコードしてから保存し、読めないものは画像なしで取り込む
     @MainActor
-    @Test func importSanitizesImages() throws {
+    @Test func importSanitizesImages() async throws {
         let container = try ModelContainer(
             for: PictureCard.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
@@ -195,7 +195,7 @@ struct CardExportImportServiceTests {
         try zip.write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        let result = try Service.importCards(from: url, context: context)
+        let result = try await Service.importCards(from: url, context: context)
         #expect(result == .init(importedCount: 3, skippedImageCount: 2))
 
         let imported = try context.fetch(FetchDescriptor<PictureCard>(sortBy: [SortDescriptor(\.sortOrder)]))
@@ -216,7 +216,7 @@ struct CardExportImportServiceTests {
     }
 
     @MainActor
-    @Test func importRejectsTruncatedZip() throws {
+    @Test func importRejectsTruncatedZip() async throws {
         let container = try ModelContainer(
             for: PictureCard.self,
             configurations: ModelConfiguration(isStoredInMemoryOnly: true)
@@ -226,10 +226,189 @@ struct CardExportImportServiceTests {
         try Data([0x50, 0x4B, 0x03, 0x04]).write(to: url)
         defer { try? FileManager.default.removeItem(at: url) }
 
-        #expect(throws: Service.ExportImportError.self) {
-            try Service.importCards(from: url, context: container.mainContext)
+        await #expect(throws: Service.ExportImportError.self) {
+            try await Service.importCards(from: url, context: container.mainContext)
         }
         #expect(try container.mainContext.fetchCount(FetchDescriptor<PictureCard>()) == 0)
+    }
+
+    // MARK: - Import limits (#51)
+
+    private func card(
+        _ displayName: String = "いぬ",
+        kana: String = "いぬ",
+        category: String = "生活"
+    ) -> Service.ExportCard {
+        .init(displayName: displayName, kanaText: kana, category: category, hasImage: false, imageFileName: nil)
+    }
+
+    private func writeTempZip(_ entries: [(name: String, data: Data)]) throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("import-limit-\(UUID().uuidString).zip")
+        try Service.buildZip(entries: entries).write(to: url)
+        return url
+    }
+
+    private func manifest(_ cards: [Service.ExportCard]) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(Service.ExportPayload(version: 1, exportedAt: Date(), cards: cards))
+    }
+
+    @Test func sanitizedTextRemovesControlCharacters() {
+        #expect(Service.sanitizedText("  いぬ\n") == "いぬ")
+        #expect(Service.sanitizedText("い\u{0}ぬ\u{7}\t") == "いぬ")
+        #expect(Service.sanitizedText("い\u{2028}ぬ\u{2029}") == "いぬ")
+        // 双方向テキストの制御文字（表示順を偽装できる）
+        #expect(Service.sanitizedText("\u{202E}gnp.exe\u{202C}\u{200F}\u{2066}") == "gnp.exe")
+        // 絵文字の結合（ZWJ）や異体字セレクタは残す
+        #expect(Service.sanitizedText("👨‍👩‍👧") == "👨‍👩‍👧")
+        #expect(Service.sanitizedText("☺️") == "☺️")
+        #expect(Service.sanitizedText("おかあ さん") == "おかあ さん")
+    }
+
+    @Test func validatedCardsSanitizesText() throws {
+        let cards = try Service.validatedCards([card(" い\u{0}ぬ\n", kana: "\tいぬ", category: " 生活 ")])
+        #expect(cards.map(\.displayName) == ["いぬ"])
+        #expect(cards.map(\.kanaText) == ["いぬ"])
+        #expect(cards.map(\.category) == ["生活"])
+    }
+
+    @Test func validatedCardsAcceptsMaxLengths() throws {
+        let name = String(repeating: "あ", count: Service.maxDisplayNameLength)
+        let kana = String(repeating: "あ", count: Service.maxKanaTextLength)
+        #expect(try Service.validatedCards([card(name, kana: kana)]).count == 1)
+        // 文字数は見た目の 1 文字（書記素クラスタ）で数える
+        let emoji = String(repeating: "👨‍👩‍👧", count: Service.maxDisplayNameLength)
+        #expect(try Service.validatedCards([card(emoji)]).count == 1)
+    }
+
+    @Test(arguments: [
+        (0, Service.CardProblem.emptyDisplayName),
+        (1, .displayNameTooLong),
+        (2, .emptyKanaText),
+        (3, .kanaTextTooLong),
+        (4, .unknownCategory),
+        (5, .unknownCategory),
+    ])
+    func validatedCardsRejectsInvalidCard(index: Int, problem: Service.CardProblem) {
+        let invalid = [
+            card(" \n\u{0}"),
+            card(String(repeating: "あ", count: Service.maxDisplayNameLength + 1)),
+            card(kana: "\u{202E}"),
+            card(kana: String(repeating: "あ", count: Service.maxKanaTextLength + 1)),
+            card(category: "存在しない"),
+            card(category: ""),
+        ][index]
+        // 何枚目のカードが不正かがエラーに含まれる
+        #expect(throws: Service.ExportImportError.invalidCard(index: 1, problem: problem)) {
+            try Service.validatedCards([card(), invalid, card()])
+        }
+    }
+
+    @Test func validatedCardsLimitsCardCount() throws {
+        let max = Array(repeating: card(), count: Service.maxImportCardCount)
+        #expect(try Service.validatedCards(max).count == Service.maxImportCardCount)
+        #expect(throws: Service.ExportImportError.tooManyCards) {
+            try Service.validatedCards(max + [card()])
+        }
+    }
+
+    @Test func parseZipLimitsEntryCount() throws {
+        let entries = (0..<5).map { (name: "f\($0)", data: Data([UInt8($0)])) }
+        #expect(try Service.parseZip(data: Service.buildZip(entries: entries), maxEntryCount: 5).count == 5)
+        #expect(throws: Service.ExportImportError.tooManyEntries) {
+            try Service.parseZip(data: Service.buildZip(entries: entries), maxEntryCount: 4)
+        }
+    }
+
+    @Test func readImportFileLimitsSize() throws {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("import-size-\(UUID().uuidString).zip")
+        try Data(count: 100).write(to: url)
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        #expect(try Service.readImportFile(at: url, maxSize: 100).count == 100)
+        #expect(throws: Service.ExportImportError.fileTooLarge) {
+            try Service.readImportFile(at: url, maxSize: 99)
+        }
+    }
+
+    @Test func importRejectsHugeManifest() throws {
+        // 件数をデコードする前にサイズで弾く
+        var json = try manifest([card()])
+        json.append(Data(repeating: UInt8(ascii: " "), count: Service.maxManifestSize))
+        let url = try writeTempZip([("cards.json", json)])
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        #expect(throws: Service.ExportImportError.manifestTooLarge) {
+            try Service.prepareImport(from: url)
+        }
+    }
+
+    /// 不正なカードが 1 枚でもあれば、画像も含めて何も追加しない
+    @MainActor
+    @Test func importWithInvalidCardAddsNothing() async throws {
+        let container = try ModelContainer(
+            for: PictureCard.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let withImage = Service.ExportCard(
+            displayName: "写真", kanaText: "しゃしん", category: "生活", hasImage: true, imageFileName: "a.jpg"
+        )
+        let url = try writeTempZip([
+            ("cards.json", try manifest([withImage, card(category: "幽霊")])),
+            ("images/a.jpg", TestImages.jpeg(width: 10, height: 10, withGPS: false)),
+        ])
+        defer { try? FileManager.default.removeItem(at: url) }
+        let imagesBefore = storedImageFiles()
+
+        await #expect(throws: Service.ExportImportError.invalidCard(index: 1, problem: .unknownCategory)) {
+            try await Service.importCards(from: url, context: container.mainContext)
+        }
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PictureCard>()) == 0)
+        #expect(storedImageFiles() == imagesBefore)
+    }
+
+    @MainActor
+    @Test func importReportsProgress() async throws {
+        let container = try ModelContainer(
+            for: PictureCard.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+        let url = try writeTempZip([("cards.json", try manifest([card("いぬ"), card("ねこ"), card("とり")]))])
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let progress = ProgressRecorder()
+        let result = try await Service.importCards(from: url, context: container.mainContext) { completed, total in
+            progress.record(completed, total)
+        }
+        #expect(result == .init(importedCount: 3, skippedImageCount: 0))
+        #expect(progress.values.map(\.completed) == [1, 2, 3])
+        #expect(progress.values.allSatisfy { $0.total == 3 })
+    }
+
+    private func storedImageFiles() -> Set<String> {
+        let files = try? FileManager.default.contentsOfDirectory(atPath: Constants.customImageDirectory.path)
+        return Set(files ?? [])
+    }
+}
+
+/// バックグラウンドから呼ばれる進捗コールバックの記録
+private final class ProgressRecorder: @unchecked Sendable {
+    private let lock = NSLock()
+    private var recorded: [(completed: Int, total: Int)] = []
+
+    func record(_ completed: Int, _ total: Int) {
+        lock.lock()
+        defer { lock.unlock() }
+        recorded.append((completed, total))
+    }
+
+    var values: [(completed: Int, total: Int)] {
+        lock.lock()
+        defer { lock.unlock() }
+        return recorded
     }
 }
 

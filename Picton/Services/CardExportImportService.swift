@@ -22,11 +22,17 @@ enum CardExportImportService {
 
     // MARK: - Errors
 
-    enum ExportImportError: LocalizedError {
+    enum ExportImportError: LocalizedError, Equatable {
         case noCustomCards
         case invalidZip
         case invalidManifest
         case writeFailed
+        case fileTooLarge
+        case tooManyEntries
+        case manifestTooLarge
+        case tooManyCards
+        /// `index` は cards.json 内での 0 始まりの位置
+        case invalidCard(index: Int, problem: CardProblem)
 
         var errorDescription: String? {
             switch self {
@@ -34,6 +40,35 @@ enum CardExportImportService {
             case .invalidZip: return "ZIPファイルを読み込めませんでした"
             case .invalidManifest: return "カードデータが不正です"
             case .writeFailed: return "ファイルの書き込みに失敗しました"
+            case .fileTooLarge:
+                return "ファイルが大きすぎます（\(CardExportImportService.maxImportFileSize / 1024 / 1024) MB まで）"
+            case .tooManyEntries: return "ZIPファイル内のファイルが多すぎます"
+            case .manifestTooLarge: return "カードデータが大きすぎます"
+            case .tooManyCards:
+                return "カードが多すぎます（1 回に \(CardExportImportService.maxImportCardCount) 枚まで）"
+            case let .invalidCard(index, problem):
+                return "\(index + 1) 枚目のカード: \(problem.message)"
+            }
+        }
+    }
+
+    /// インポートするカードの内容の問題
+    enum CardProblem: Equatable {
+        case emptyDisplayName
+        case displayNameTooLong
+        case emptyKanaText
+        case kanaTextTooLong
+        case unknownCategory
+
+        var message: String {
+            switch self {
+            case .emptyDisplayName: return "表示名が空です"
+            case .displayNameTooLong:
+                return "表示名が長すぎます（\(CardExportImportService.maxDisplayNameLength) 文字まで）"
+            case .emptyKanaText: return "読みがなが空です"
+            case .kanaTextTooLong:
+                return "読みがなが長すぎます（\(CardExportImportService.maxKanaTextLength) 文字まで）"
+            case .unknownCategory: return "カテゴリが不明です"
             }
         }
     }
@@ -115,6 +150,22 @@ enum CardExportImportService {
         try? FileManager.default.removeItem(at: exportDirectory)
     }
 
+    // MARK: - Import limits
+
+    /// インポートできる ZIP ファイルの最大サイズ
+    static let maxImportFileSize = 50 * 1024 * 1024
+    /// 1 回のインポートで追加できる最大カード数
+    static let maxImportCardCount = 1_000
+    /// ZIP 内の最大エントリ数（cards.json と、カード 1 枚につき画像 1 枚）
+    static let maxZipEntryCount = maxImportCardCount + 1
+    /// cards.json の最大サイズ
+    ///
+    /// 1 枚あたり 1KB 程度なので、上限の 1,000 枚でも十分に収まる。
+    /// デコード前に弾くことで、件数チェックの前に巨大な配列を作らない。
+    static let maxManifestSize = 2 * 1024 * 1024
+    static let maxDisplayNameLength = 50
+    static let maxKanaTextLength = 100
+
     // MARK: - Import
 
     struct ImportResult: Equatable {
@@ -124,18 +175,60 @@ enum CardExportImportService {
         let skippedImageCount: Int
     }
 
+    /// DB に追加する前の、検証・画像保存まで済んだカード
+    struct PreparedCard: Sendable {
+        let id: UUID
+        let displayName: String
+        let kanaText: String
+        let category: String
+    }
+
+    struct PreparedImport: Sendable {
+        let cards: [PreparedCard]
+        let skippedImageCount: Int
+        /// 保存済みの画像（DB への追加に失敗したら消す）
+        let savedImageIDs: [UUID]
+    }
+
     /// ZIP ファイルからカスタムカードをインポートする
-    static func importCards(from zipURL: URL, context: ModelContext) throws -> ImportResult {
+    ///
+    /// ファイルの読み込み・パース・画像の検証と保存はバックグラウンドで行い、
+    /// DB への追加だけをメインスレッドで行う。
+    /// - Parameter onProgress: 画像の処理が 1 枚進むごとに（処理済み枚数, 全枚数）で呼ばれる。
+    ///   バックグラウンドスレッドから呼ばれる
+    @MainActor
+    static func importCards(
+        from zipURL: URL,
+        context: ModelContext,
+        onProgress: @escaping @Sendable (_ completed: Int, _ total: Int) -> Void = { _, _ in }
+    ) async throws -> ImportResult {
+        let prepared = try await Task.detached(priority: .userInitiated) {
+            try prepareImport(from: zipURL, onProgress: onProgress)
+        }.value
+        return try commit(prepared, context: context)
+    }
+
+    /// ZIP を読み込んで検証し、画像を新しい UUID で保存する（DB には触らない）
+    ///
+    /// ZIP は外部から来たデータなので、サイズ・件数・文字列をすべて検証してから画像を保存する。
+    /// 不正なカードが 1 枚でもあれば何も保存せずにエラーにする。
+    static func prepareImport(
+        from zipURL: URL,
+        onProgress: (_ completed: Int, _ total: Int) -> Void = { _, _ in }
+    ) throws -> PreparedImport {
         let accessing = zipURL.startAccessingSecurityScopedResource()
         defer {
             if accessing { zipURL.stopAccessingSecurityScopedResource() }
         }
 
-        let zipData = try Data(contentsOf: zipURL)
+        let zipData = try readImportFile(at: zipURL)
         let entries = try parseZip(data: zipData)
 
         guard let jsonEntry = entries.first(where: { $0.name == "cards.json" }) else {
             throw ExportImportError.invalidManifest
+        }
+        guard jsonEntry.data.count <= maxManifestSize else {
+            throw ExportImportError.manifestTooLarge
         }
 
         let decoder = JSONDecoder()
@@ -146,12 +239,7 @@ enum CardExportImportService {
             throw ExportImportError.invalidManifest
         }
 
-        // 既存カスタムカードの最大 sortOrder を取得
-        let descriptor = FetchDescriptor<PictureCard>(
-            sortBy: [SortDescriptor(\PictureCard.sortOrder, order: .reverse)]
-        )
-        let existing = try context.fetch(descriptor)
-        var nextSortOrder = (existing.first?.sortOrder ?? -1) + 1
+        let exportCards = try validatedCards(payload.cards)
 
         // Build image lookup: original filename -> data
         var imageLookup: [String: Data] = [:]
@@ -160,39 +248,149 @@ enum CardExportImportService {
             imageLookup[fileName] = entry.data
         }
 
-        var importedCount = 0
+        var cards: [PreparedCard] = []
+        var savedImageIDs: [UUID] = []
         var skippedImageCount = 0
-        for exportCard in payload.cards {
-            let newID = UUID()
-            let card = PictureCard(
-                id: newID,
-                displayName: exportCard.displayName,
-                kanaText: exportCard.kanaText,
-                category: exportCard.category,
-                isPreset: false,
-                sortOrder: nextSortOrder,
-                createdAt: Date()
-            )
-            context.insert(card)
-            nextSortOrder += 1
+        do {
+            for (index, exportCard) in exportCards.enumerated() {
+                let newID = UUID()
 
-            // 画像を新 UUID で保存する。ZIP の中身は外部から来たデータなので、
-            // 画像として検証・縮小デコードしてから JPEG に再エンコードする（メタデータも除去される）。
-            // 読めない・大きすぎる画像は、カード自体は取り込んで画像なしとして扱う
-            if exportCard.hasImage, let origFileName = exportCard.imageFileName,
-               let imageData = imageLookup[origFileName] {
-                if let image = ImageStorageService.sanitizedImage(from: imageData) {
-                    try ImageStorageService.save(image: image, id: newID)
-                } else {
-                    skippedImageCount += 1
+                // 画像を新 UUID で保存する。ZIP の中身は外部から来たデータなので、
+                // 画像として検証・縮小デコードしてから JPEG に再エンコードする（メタデータも除去される）。
+                // 読めない・大きすぎる画像は、カード自体は取り込んで画像なしとして扱う
+                if exportCard.hasImage, let origFileName = exportCard.imageFileName,
+                   let imageData = imageLookup[origFileName] {
+                    // 1 枚ごとにデコードした画像を解放し、メモリ使用量を一定に保つ
+                    let saved = try autoreleasepool {
+                        guard let image = ImageStorageService.sanitizedImage(from: imageData) else {
+                            return false
+                        }
+                        _ = try ImageStorageService.save(image: image, id: newID)
+                        return true
+                    }
+                    if saved {
+                        savedImageIDs.append(newID)
+                    } else {
+                        skippedImageCount += 1
+                    }
                 }
-            }
 
-            importedCount += 1
+                cards.append(PreparedCard(
+                    id: newID,
+                    displayName: exportCard.displayName,
+                    kanaText: exportCard.kanaText,
+                    category: exportCard.category
+                ))
+                onProgress(index + 1, exportCards.count)
+            }
+        } catch {
+            savedImageIDs.forEach(ImageStorageService.delete(id:))
+            throw error
         }
 
-        try context.save()
-        return ImportResult(importedCount: importedCount, skippedImageCount: skippedImageCount)
+        return PreparedImport(cards: cards, skippedImageCount: skippedImageCount, savedImageIDs: savedImageIDs)
+    }
+
+    /// 準備したカードを既存カードの後ろに追加する
+    @MainActor
+    static func commit(_ prepared: PreparedImport, context: ModelContext) throws -> ImportResult {
+        do {
+            var descriptor = FetchDescriptor<PictureCard>(
+                sortBy: [SortDescriptor(\PictureCard.sortOrder, order: .reverse)]
+            )
+            descriptor.fetchLimit = 1
+            var nextSortOrder = (try context.fetch(descriptor).first?.sortOrder ?? -1) + 1
+
+            for prepared in prepared.cards {
+                context.insert(PictureCard(
+                    id: prepared.id,
+                    displayName: prepared.displayName,
+                    kanaText: prepared.kanaText,
+                    category: prepared.category,
+                    isPreset: false,
+                    sortOrder: nextSortOrder,
+                    createdAt: Date()
+                ))
+                nextSortOrder += 1
+            }
+            try context.save()
+        } catch {
+            context.rollback()
+            prepared.savedImageIDs.forEach(ImageStorageService.delete(id:))
+            throw error
+        }
+        return ImportResult(importedCount: prepared.cards.count, skippedImageCount: prepared.skippedImageCount)
+    }
+
+    /// インポートするファイルを上限サイズまで読み込む
+    ///
+    /// 先にファイルサイズで弾き、サイズが取れない場合や読み込み中に大きくなった場合も
+    /// 上限 + 1 バイトまでしか読まないので、巨大なファイルを丸ごとメモリに載せない。
+    static func readImportFile(at url: URL, maxSize: Int = maxImportFileSize) throws -> Data {
+        if let size = try? url.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > maxSize {
+            throw ExportImportError.fileTooLarge
+        }
+        let handle = try FileHandle(forReadingFrom: url)
+        defer { try? handle.close() }
+        let data = try handle.read(upToCount: maxSize + 1) ?? Data()
+        guard data.count <= maxSize else { throw ExportImportError.fileTooLarge }
+        return data
+    }
+
+    /// カードの件数と文字列を検証し、制御文字を除いてトリムしたものを返す
+    static func validatedCards(_ cards: [ExportCard]) throws -> [ExportCard] {
+        guard cards.count <= maxImportCardCount else { throw ExportImportError.tooManyCards }
+
+        return try cards.enumerated().map { index, card in
+            func fail(_ problem: CardProblem) -> ExportImportError {
+                .invalidCard(index: index, problem: problem)
+            }
+
+            let displayName = sanitizedText(card.displayName)
+            guard !displayName.isEmpty else { throw fail(.emptyDisplayName) }
+            guard displayName.count <= maxDisplayNameLength else { throw fail(.displayNameTooLong) }
+
+            let kanaText = sanitizedText(card.kanaText)
+            guard !kanaText.isEmpty else { throw fail(.emptyKanaText) }
+            guard kanaText.count <= maxKanaTextLength else { throw fail(.kanaTextTooLong) }
+
+            // 一覧にないカテゴリのカードはどのタブにも表示されず、編集もできなくなる
+            let category = sanitizedText(card.category)
+            guard Constants.allCategories.contains(category) else { throw fail(.unknownCategory) }
+
+            return ExportCard(
+                displayName: displayName,
+                kanaText: kanaText,
+                category: category,
+                hasImage: card.hasImage,
+                imageFileName: card.imageFileName
+            )
+        }
+    }
+
+    /// 制御文字・改行・双方向テキストの制御文字を取り除き、前後の空白をトリムする
+    ///
+    /// 絵文字の結合に使うゼロ幅接合子（U+200D）などは残す。
+    static func sanitizedText(_ text: String) -> String {
+        var scalars = String.UnicodeScalarView()
+        scalars.append(contentsOf: text.unicodeScalars.filter { !isDisallowedScalar($0) })
+        return String(scalars).trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private static func isDisallowedScalar(_ scalar: Unicode.Scalar) -> Bool {
+        switch scalar.properties.generalCategory {
+        case .control, .lineSeparator, .paragraphSeparator:
+            return true
+        default:
+            switch scalar.value {
+            case 0x200E, 0x200F, // LRM, RLM
+                 0x202A...0x202E, // LRE, RLE, PDF, LRO, RLO
+                 0x2066...0x2069: // LRI, RLI, FSI, PDI
+                return true
+            default:
+                return false
+            }
+        }
     }
 
     // MARK: - ZIP Construction (store / no compression)
@@ -283,11 +481,14 @@ enum CardExportImportService {
     ///
     /// 外部から受け取ったファイルを扱うため、すべての読み取りで範囲を検証し、
     /// 不正・破損した入力に対してはクラッシュせず `invalidZip` を投げる。
-    static func parseZip(data: Data) throws -> [ZipEntry] {
+    /// エントリが `maxEntryCount` を超えたら `tooManyEntries` を投げる。
+    /// 各エントリの `data` は `data` を共有するスライス（コピーしない）。
+    static func parseZip(data: Data, maxEntryCount: Int = maxZipEntryCount) throws -> [ZipEntry] {
         var entries: [ZipEntry] = []
         var offset = 0
 
         while let signature = data.readUInt32(at: offset), signature == 0x04034b50 {
+            guard entries.count < maxEntryCount else { throw ExportImportError.tooManyEntries }
             guard offset + localFileHeaderSize <= data.count,
                   let crc = data.readUInt32(at: offset + 14),
                   let compressedSize = data.readUInt32(at: offset + 18),
@@ -346,9 +547,11 @@ private extension Data {
     }
 
     /// 先頭からの相対オフセット `[from, to)` を切り出す。範囲外なら nil
+    ///
+    /// 元のバッファを共有するスライスを返す（インデックスは元の `Data` のまま）。
     func slice(from start: Int, to end: Int) -> Data? {
         guard start >= 0, start <= end, end <= count else { return nil }
-        return Data(self[(startIndex + start)..<(startIndex + end)])
+        return self[(startIndex + start)..<(startIndex + end)]
     }
 
     /// 先頭からの相対オフセットにある little-endian の UInt16 を読む。範囲外なら nil
