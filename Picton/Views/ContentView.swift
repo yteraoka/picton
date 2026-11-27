@@ -201,7 +201,6 @@ struct ContentView: View {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     }
                 },
-                onCardLongPress: { _ in },
                 onAddTap: {
                     guard isInteractive else { return }
                     showAddCard = true

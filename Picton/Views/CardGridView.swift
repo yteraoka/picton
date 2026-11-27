@@ -5,7 +5,6 @@ import UniformTypeIdentifiers
 struct CardGridView: View {
     let cards: [PictureCard]
     let onCardTap: (PictureCard) -> Void
-    let onCardLongPress: (PictureCard) -> Void
     let onAddTap: () -> Void
     var isEditMode: Bool = false
     var onReorder: ((PictureCard, PictureCard) -> Void)?
@@ -54,7 +53,6 @@ struct CardGridView: View {
         let item = CardGridItemView(
             card: card,
             onTap: { onCardTap(card) },
-            onLongPress: { onCardLongPress(card) },
             isEditMode: isEditMode
         )
 
