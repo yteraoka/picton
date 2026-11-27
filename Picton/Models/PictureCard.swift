@@ -12,6 +12,9 @@ final class PictureCard: Identifiable {
     /// プリセットの安定 ID（`PresetCardDefinition.id`）。カスタムカードは nil。
     /// 古いバージョンで作られたプリセットは起動時の移行処理で補完される。
     var presetID: String?
+    /// インポートしたカードの、元になったカードの ID（エクスポート時の `sourceID`）。
+    /// 同じカードを再インポートしたときに重複を検出するために使う。インポート以外で作ったカードは nil。
+    var originID: UUID?
     var sortOrder: Int
     var createdAt: Date
     var isHidden: Bool = false
@@ -24,6 +27,7 @@ final class PictureCard: Identifiable {
         isPreset: Bool = false,
         presetImageName: String? = nil,
         presetID: String? = nil,
+        originID: UUID? = nil,
         sortOrder: Int = 0,
         createdAt: Date = Date(),
         isHidden: Bool = false
@@ -35,6 +39,7 @@ final class PictureCard: Identifiable {
         self.isPreset = isPreset
         self.presetImageName = presetImageName
         self.presetID = presetID
+        self.originID = originID
         self.sortOrder = sortOrder
         self.createdAt = createdAt
         self.isHidden = isHidden

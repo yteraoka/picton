@@ -394,6 +394,201 @@ struct CardExportImportServiceTests {
     }
 }
 
+/// 再インポート時の重複検出 (#54)
+///
+/// `exportCustomCards` は書き出す前にエクスポート用ディレクトリを丸ごと消すため、
+/// エクスポートを使うテスト同士が並列に走ると互いの ZIP を消してしまう。直列に実行する。
+@Suite("CardExportImportService 重複検出", .serialized)
+struct CardReimportTests {
+    typealias Service = CardExportImportService
+
+    private func card(_ displayName: String, kana: String? = nil, category: String = "生活") -> Service.ExportCard {
+        .init(displayName: displayName, kanaText: kana ?? displayName, category: category,
+              hasImage: false, imageFileName: nil)
+    }
+
+    private func writeTempZip(_ entries: [(name: String, data: Data)]) throws -> URL {
+        let url = FileManager.default.temporaryDirectory
+            .appendingPathComponent("import-dedup-\(UUID().uuidString).zip")
+        try Service.buildZip(entries: entries).write(to: url)
+        return url
+    }
+
+    private func manifest(_ cards: [Service.ExportCard]) throws -> Data {
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        return try encoder.encode(Service.ExportPayload(version: 1, exportedAt: Date(), cards: cards))
+    }
+
+    private func makeContainer() throws -> ModelContainer {
+        try ModelContainer(
+            for: PictureCard.self,
+            configurations: ModelConfiguration(isStoredInMemoryOnly: true)
+        )
+    }
+
+    private func customCards(in context: ModelContext) throws -> [PictureCard] {
+        try context.fetch(FetchDescriptor<PictureCard>(
+            predicate: #Predicate { $0.isPreset == false },
+            sortBy: [SortDescriptor(\.sortOrder)]
+        ))
+    }
+
+    /// context のカスタムカードをエクスポートした ZIP の URL を返す
+    @MainActor
+    private func export(_ context: ModelContext) throws -> URL {
+        try Service.exportCustomCards(try customCards(in: context))
+    }
+
+    @MainActor
+    @Test func exportIncludesSourceID() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let original = PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活")
+        let imported = PictureCard(displayName: "ねこ", kanaText: "ねこ", category: "生活",
+                                   originID: UUID(), sortOrder: 1)
+        context.insert(original)
+        context.insert(imported)
+        try context.save()
+
+        let url = try export(context)
+        defer { Service.removeExportedFile(at: url) }
+        let entries = try Service.parseZip(data: Data(contentsOf: url))
+        let json = try #require(entries.first { $0.name == "cards.json" })
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let payload = try decoder.decode(Service.ExportPayload.self, from: json.data)
+
+        // 自分で作ったカードは自身の ID、インポートしたカードは元の ID を出どころとして書き出す
+        #expect(payload.cards.map(\.sourceID) == [original.id, imported.originID])
+    }
+
+    /// 自分でエクスポートした ZIP を同じ端末に再インポートしても増えない
+    @MainActor
+    @Test func reimportingOwnExportAddsNothing() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        context.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活", sortOrder: 0))
+        context.insert(PictureCard(displayName: "ねこ", kanaText: "ねこ", category: "生活", sortOrder: 1))
+        try context.save()
+        let url = try export(context)
+        defer { Service.removeExportedFile(at: url) }
+
+        let result = try await Service.importCards(from: url, context: context)
+        #expect(result == .init(importedCount: 0, skippedImageCount: 0, skippedDuplicateCount: 2))
+        #expect(try customCards(in: context).count == 2)
+    }
+
+    /// 別の端末に 2 回インポートしても 1 回分だけ増え、その端末からのエクスポートを元の端末に戻しても増えない
+    @MainActor
+    @Test func importingTwiceOnAnotherDeviceAndBackAddsOnce() async throws {
+        let deviceA = try makeContainer()
+        let deviceB = try makeContainer()
+        deviceA.mainContext.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活"))
+        try deviceA.mainContext.save()
+        let fromA = try export(deviceA.mainContext)
+        defer { Service.removeExportedFile(at: fromA) }
+
+        let first = try await Service.importCards(from: fromA, context: deviceB.mainContext)
+        #expect(first == .init(importedCount: 1, skippedImageCount: 0, skippedDuplicateCount: 0))
+        let second = try await Service.importCards(from: fromA, context: deviceB.mainContext)
+        #expect(second == .init(importedCount: 0, skippedImageCount: 0, skippedDuplicateCount: 1))
+
+        let cardsOnB = try customCards(in: deviceB.mainContext)
+        let originalID = try #require(try customCards(in: deviceA.mainContext).first?.id)
+        #expect(cardsOnB.count == 1)
+        #expect(cardsOnB.first?.originID == originalID)
+        #expect(cardsOnB.first?.id != originalID)
+
+        // B でエクスポートした ZIP を A に戻す
+        let fromB = try export(deviceB.mainContext)
+        defer { Service.removeExportedFile(at: fromB) }
+        let back = try await Service.importCards(from: fromB, context: deviceA.mainContext)
+        #expect(back == .init(importedCount: 0, skippedImageCount: 0, skippedDuplicateCount: 1))
+    }
+
+    /// エクスポート後に表示名を編集していても、同じカードとしてスキップする（手元の編集を残す）
+    @MainActor
+    @Test func reimportSkipsCardEditedAfterExport() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let card = PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活")
+        context.insert(card)
+        try context.save()
+        let url = try export(context)
+        defer { Service.removeExportedFile(at: url) }
+        card.displayName = "ぽち"
+        try context.save()
+
+        let result = try await Service.importCards(from: url, context: context)
+        #expect(result.skippedDuplicateCount == 1)
+        #expect(try customCards(in: context).map(\.displayName) == ["ぽち"])
+    }
+
+    /// 出どころの ID が違えば、内容が同じでも別のカードとして追加する
+    @MainActor
+    @Test func cardWithSameContentButDifferentSourceIsImported() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        context.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活"))
+        try context.save()
+
+        var other = card("いぬ")
+        other.sourceID = UUID()
+        let url = try writeTempZip([("cards.json", try manifest([other]))])
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let result = try await Service.importCards(from: url, context: context)
+        #expect(result == .init(importedCount: 1, skippedImageCount: 0, skippedDuplicateCount: 0))
+    }
+
+    /// sourceID のない古い ZIP: 画像ファイル名の UUID で照合し、画像もなければ内容で照合する
+    @MainActor
+    @Test func legacyZipWithoutSourceIDIsDeduplicated() async throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        let originalID = UUID()
+        let withImage = Service.ExportCard(
+            displayName: "写真", kanaText: "しゃしん", category: "生活",
+            hasImage: true, imageFileName: "\(originalID.uuidString).jpg"
+        )
+        let url = try writeTempZip([
+            ("cards.json", try manifest([withImage, card("ねこ")])),
+            ("images/\(originalID.uuidString).jpg", TestImages.jpeg(width: 10, height: 10, withGPS: false)),
+        ])
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let first = try await Service.importCards(from: url, context: context)
+        let imported = try customCards(in: context)
+        defer { imported.forEach { ImageStorageService.delete(id: $0.id) } }
+        #expect(first == .init(importedCount: 2, skippedImageCount: 0, skippedDuplicateCount: 0))
+        #expect(imported.first?.originID == originalID)
+        #expect(imported.last?.originID == nil)
+
+        let second = try await Service.importCards(from: url, context: context)
+        #expect(second == .init(importedCount: 0, skippedImageCount: 0, skippedDuplicateCount: 2))
+        #expect(try customCards(in: context).count == 2)
+    }
+
+    /// 同じ ZIP の中で同じカードが 2 回出てきたら 1 枚だけ追加する
+    @MainActor
+    @Test func duplicatesWithinOneZipAreAddedOnce() async throws {
+        let container = try makeContainer()
+        var a = card("いぬ")
+        a.sourceID = UUID()
+        let url = try writeTempZip([("cards.json", try manifest([a, a, card("ねこ"), card("ねこ")]))])
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let progress = ProgressRecorder()
+        let result = try await Service.importCards(from: url, context: container.mainContext) { completed, total in
+            progress.record(completed, total)
+        }
+        #expect(result == .init(importedCount: 2, skippedImageCount: 0, skippedDuplicateCount: 2))
+        // スキップしたカードも進捗に数える
+        #expect(progress.values.map(\.completed) == [1, 2, 3, 4])
+    }
+}
+
 /// バックグラウンドから呼ばれる進捗コールバックの記録
 private final class ProgressRecorder: @unchecked Sendable {
     private let lock = NSLock()
