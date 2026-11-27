@@ -1,7 +1,15 @@
 import SwiftUI
 
+/// 「いつ」カテゴリの日付カード（きょう・あした・あさって、カレンダー）
+///
+/// `CardGridView` のヘッダーとして表示し、その下のグリッドに利用者が追加した
+/// 「いつ」のカスタムカードを並べる。
 struct WhenCategoryView: View {
     let isInteractive: Bool
+    /// 編集モード中は日付カードを押せないようにする（グリッドのカードの編集・並べ替えだけを行う）
+    var isEditMode: Bool = false
+    /// 下のグリッドにカスタムカード（または編集モードの「追加」）があるときに見出しを出す
+    var showsCustomCardsHeading: Bool = false
     let onCardTap: (PictureCard) -> Void
 
     @State private var selectedDate: Date = Calendar.current.startOfDay(for: Date())
@@ -11,7 +19,7 @@ struct WhenCategoryView: View {
     private var dayAfterTomorrow: Date { Calendar.current.date(byAdding: .day, value: 2, to: today)! }
 
     var body: some View {
-        ScrollView {
+        VStack(alignment: .leading, spacing: 0) {
             VStack(alignment: .leading, spacing: 0) {
                 // きょう・あした・あさって
                 HStack(spacing: 12) {
@@ -81,8 +89,19 @@ struct WhenCategoryView: View {
                 }
                 .padding(.bottom, 20)
             }
+            .disabled(!isInteractive || isEditMode)
+            .opacity(isEditMode ? 0.4 : 1)
+
+            if showsCustomCardsHeading {
+                Divider()
+                    .padding(.horizontal, 16)
+                Text("追加したカード")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 16)
+                    .padding(.top, 12)
+            }
         }
-        .disabled(!isInteractive)
     }
 
     @ViewBuilder

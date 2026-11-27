@@ -144,7 +144,8 @@ struct ContentView: View {
         .navigationBarTitleDisplayMode(.inline)
         }
         .sheet(isPresented: $showAddCard) {
-            AddCardView()
+            // 表示中のカテゴリのグリッドから追加したので、そのカテゴリを初期値にする
+            AddCardView(initialCategory: libraryVM.selectedCategory)
         }
         .sheet(item: $editingCard) { card in
             EditCardView(card: card)
@@ -175,54 +176,64 @@ struct ContentView: View {
         }
     }
 
-    @ViewBuilder
+    /// カテゴリのカードグリッド
+    ///
+    /// 「いつ」カテゴリはグリッドの上に日付カード（きょう・あした・あさって、カレンダー）を表示し、
+    /// グリッドには利用者が追加した「いつ」のカードを並べる。
     private func categoryContent(for category: String, isInteractive: Bool, allCards: [PictureCard]) -> some View {
-        if category == "いつ" {
-            WhenCategoryView(isInteractive: isInteractive) { card in
+        let cards = filteredCards(from: allCards, category: category)
+        let isEditing = isInteractive && isEditMode
+        return CardGridView(
+            cards: cards,
+            onCardTap: { card in
                 guard isInteractive, !isHorizontalDrag else { return }
-                withAnimation(.easeInOut(duration: 0.2)) {
-                    sentenceVM.append(card)
+                if isEditMode {
+                    editingCard = card
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                } else {
+                    addToSentence(card)
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 }
-                ttsService.speak(card.kanaText)
-            }
-        } else {
-            CardGridView(
-                cards: filteredCards(from: allCards, category: category),
-                onCardTap: { card in
+            },
+            onAddTap: {
+                guard isInteractive else { return }
+                showAddCard = true
+            },
+            isEditMode: isEditing,
+            onReorder: isInteractive ? { draggedCard, targetCard in
+                var cards = filteredCards(from: allCards, category: category)
+                guard let fromIndex = cards.firstIndex(where: { $0.id == draggedCard.id }),
+                      let toIndex = cards.firstIndex(where: { $0.id == targetCard.id }),
+                      fromIndex != toIndex
+                else { return }
+                cards.remove(at: fromIndex)
+                cards.insert(draggedCard, at: toIndex)
+                for (index, card) in cards.enumerated() {
+                    card.sortOrder = index
+                }
+                try? modelContext.save()
+                // ドラッグ中の移動ごとに呼ばれるため、軽い selection tick にする
+                UISelectionFeedbackGenerator().selectionChanged()
+            } : nil
+        ) {
+            if category == "いつ" {
+                WhenCategoryView(
+                    isInteractive: isInteractive,
+                    isEditMode: isEditing,
+                    showsCustomCardsHeading: !cards.isEmpty || isEditing
+                ) { card in
                     guard isInteractive, !isHorizontalDrag else { return }
-                    if isEditMode {
-                        editingCard = card
-                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    } else {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            sentenceVM.append(card)
-                        }
-                        ttsService.speak(card.kanaText)
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    }
-                },
-                onAddTap: {
-                    guard isInteractive else { return }
-                    showAddCard = true
-                },
-                isEditMode: isInteractive && isEditMode,
-                onReorder: isInteractive ? { draggedCard, targetCard in
-                    var cards = filteredCards(from: allCards, category: category)
-                    guard let fromIndex = cards.firstIndex(where: { $0.id == draggedCard.id }),
-                          let toIndex = cards.firstIndex(where: { $0.id == targetCard.id }),
-                          fromIndex != toIndex
-                    else { return }
-                    cards.remove(at: fromIndex)
-                    cards.insert(draggedCard, at: toIndex)
-                    for (index, card) in cards.enumerated() {
-                        card.sortOrder = index
-                    }
-                    try? modelContext.save()
-                    // ドラッグ中の移動ごとに呼ばれるため、軽い selection tick にする
-                    UISelectionFeedbackGenerator().selectionChanged()
-                } : nil
-            )
+                    addToSentence(card)
+                }
+            }
         }
+    }
+
+    private func addToSentence(_ card: PictureCard) {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            sentenceVM.append(card)
+        }
+        ttsService.speak(card.kanaText)
     }
 
     private func filteredCards(from allCards: [PictureCard], category: String) -> [PictureCard] {
