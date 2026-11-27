@@ -86,8 +86,9 @@ jobs:
             -retry-tests-on-failure -test-iterations 2 \
             -resultBundlePath results/ui.xcresult
 
+      # 再試行で成功した場合も失敗時のスクリーンショットや UI 階層を調べられるよう、常に保存する
       - name: Upload test results
-        if: failure()
+        if: ${{ !cancelled() && hashFiles('results/**') != '' }}
         uses: actions/upload-artifact@v5
         with:
           name: xcresult

@@ -6,18 +6,10 @@ final class PictonUITests: XCTestCase {
     override func setUpWithError() throws {
         continueAfterFailure = false
         app = XCUIApplication()
-        // アプリ側でメモリ上のストアを使い、毎回プリセットだけの初期状態から始める
+        // アプリ側でメモリ上のストアを使い、毎回プリセットだけの初期状態から始める。
+        // 読み上げも無効になるため「日本語の音声が見つかりません」の案内は出ない
         app.launchArguments = ["--uitesting"]
         app.launch()
-        dismissVoiceAlertIfNeeded()
-    }
-
-    /// 日本語音声が未インストールの環境（CI など）で出る案内を閉じる
-    private func dismissVoiceAlertIfNeeded() {
-        let alert = app.alerts["日本語の音声が見つかりません"]
-        if alert.waitForExistence(timeout: 2) {
-            alert.buttons["OK"].tap()
-        }
     }
 
     /// 画面内にあるカードを返す
