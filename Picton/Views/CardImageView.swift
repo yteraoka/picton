@@ -35,9 +35,15 @@ struct CardImageView: View {
                     .foregroundStyle(.gray)
             }
         }
-        .task(id: card.cardID) {
+        // 画像を差し替えてもファイル名（カード ID）は変わらないため、imageVersion も含めて読み直す (#56)
+        .task(id: ImageKey(cardID: card.cardID, version: card.imageVersion)) {
             guard !card.isPreset, let id = card.cardID else { return }
             customImage = await Task.detached { ImageStorageService.load(id: id) }.value
         }
+    }
+
+    private struct ImageKey: Equatable {
+        let cardID: UUID?
+        let version: Int
     }
 }

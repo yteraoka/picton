@@ -141,8 +141,9 @@ struct EditCardView: View {
 
         // 画像を差し替えたときだけ保存する。保存済みの画像を毎回読み直して
         // 再圧縮すると、編集のたびに JPEG の画質が劣化するため (#55)
-        if !card.isPreset, let image = newImage {
-            _ = try? ImageStorageService.save(image: image, id: card.id)
+        if !card.isPreset, let image = newImage, (try? ImageStorageService.save(image: image, id: card.id)) != nil {
+            // 一覧・文エリアのサムネイルに差し替えを反映させる (#56)
+            card.imageVersion += 1
         }
 
         try? modelContext.save()

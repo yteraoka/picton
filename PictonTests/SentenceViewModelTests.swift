@@ -134,6 +134,19 @@ struct SentenceViewModelTests {
         #expect(vm.items.map(\.id) == itemIDs)
     }
 
+    /// 画像を差し替えると imageVersion がスナップショット・文エリアに伝わる (#56)
+    @Test func syncPropagatesImageVersion() {
+        let card = PictureCard(displayName: "A", kanaText: "えー", category: "人")
+        #expect(CardSnapshot(card).imageVersion == 0)
+
+        let vm = SentenceViewModel()
+        vm.append(CardSnapshot(card))
+        card.imageVersion += 1
+        vm.sync(with: [CardSnapshot(card)])
+
+        #expect(vm.items.first?.card.imageVersion == 1)
+    }
+
     /// DB に存在しないカード（「いつ」の日付カードなど）は同期で消えない
     @Test func syncKeepsTransientCards() {
         let vm = SentenceViewModel()
