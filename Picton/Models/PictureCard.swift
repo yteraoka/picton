@@ -9,6 +9,9 @@ final class PictureCard: Identifiable {
     var category: String
     var isPreset: Bool
     var presetImageName: String?
+    /// プリセットの安定 ID（`PresetCardDefinition.id`）。カスタムカードは nil。
+    /// 古いバージョンで作られたプリセットは起動時の移行処理で補完される。
+    var presetID: String?
     var sortOrder: Int
     var createdAt: Date
     var isHidden: Bool = false
@@ -20,6 +23,7 @@ final class PictureCard: Identifiable {
         category: String,
         isPreset: Bool = false,
         presetImageName: String? = nil,
+        presetID: String? = nil,
         sortOrder: Int = 0,
         createdAt: Date = Date(),
         isHidden: Bool = false
@@ -30,6 +34,7 @@ final class PictureCard: Identifiable {
         self.category = category
         self.isPreset = isPreset
         self.presetImageName = presetImageName
+        self.presetID = presetID
         self.sortOrder = sortOrder
         self.createdAt = createdAt
         self.isHidden = isHidden
