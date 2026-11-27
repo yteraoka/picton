@@ -144,3 +144,49 @@ struct SentenceViewModelTests {
         #expect(names(vm) == ["きょう"])
     }
 }
+
+// MARK: - 読み上げの追跡 (#59)
+
+// 文の読み上げ（TTSService）が使う判定ロジック。
+// 専用のテストファイルを追加するには xcodegen での再生成が必要なため、ここに置く。
+@Suite("UtteranceTracker")
+struct UtteranceTrackerTests {
+    private final class Utterance {}
+
+    @Test func endOfCurrentUtteranceFinishesTracking() {
+        var tracker = UtteranceTracker<Utterance>()
+        let a = Utterance()
+        tracker.begin(a)
+        #expect(tracker.isCurrent(a))
+        #expect(tracker.end(a))
+        #expect(tracker.current == nil)
+    }
+
+    /// 連続タップ: A を止めて B を開始した後に A の didCancel が届いても、B の追跡は続く
+    @Test func lateCancelOfPreviousUtteranceIsIgnored() {
+        var tracker = UtteranceTracker<Utterance>()
+        let a = Utterance(), b = Utterance()
+        tracker.begin(a)
+        tracker.begin(b)
+
+        #expect(!tracker.isCurrent(a))
+        #expect(!tracker.end(a))
+        #expect(tracker.current === b)
+
+        #expect(tracker.end(b))
+        #expect(tracker.current == nil)
+    }
+
+    @Test func endIsIgnoredWhenNothingIsTracked() {
+        var tracker = UtteranceTracker<Utterance>()
+        #expect(!tracker.end(Utterance()))
+    }
+
+    @Test func secondEndOfSameUtteranceIsIgnored() {
+        var tracker = UtteranceTracker<Utterance>()
+        let a = Utterance()
+        tracker.begin(a)
+        #expect(tracker.end(a))
+        #expect(!tracker.end(a))
+    }
+}

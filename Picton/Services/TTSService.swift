@@ -22,6 +22,12 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
     /// 音声はテストで検証できないので、テストの対象外として切り離す。
     private let isEnabled: Bool
 
+    /// 最後に読み上げを開始した utterance。
+    /// 前の読み上げを止めて次を始めると、前の utterance の didCancel が
+    /// 新しい読み上げの開始後に届くため、それを無視するために使う (#59)。
+    /// メインスレッドからのみ触る。
+    @ObservationIgnored private var utterances = UtteranceTracker<AVSpeechUtterance>()
+
     init(isEnabled: Bool = !Constants.isUITesting) {
         self.isEnabled = isEnabled
         super.init()
@@ -47,6 +53,7 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
         utterance.voice = voice
         utterance.rate = Constants.ttsRate
 
+        utterances.begin(utterance)
         activateAudioSession()
         synthesizer.speak(utterance)
     }
@@ -103,20 +110,51 @@ final class TTSService: NSObject, AVSpeechSynthesizerDelegate, @unchecked Sendab
     // MARK: - AVSpeechSynthesizerDelegate
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didStart utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async { self.isSpeaking = true }
+        DispatchQueue.main.async {
+            guard self.utterances.isCurrent(utterance) else { return }
+            self.isSpeaking = true
+        }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didFinish utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            self.isSpeaking = false
-            self.deactivateAudioSession()
-        }
+        DispatchQueue.main.async { self.handleEnd(of: utterance) }
     }
 
     func speechSynthesizer(_ synthesizer: AVSpeechSynthesizer, didCancel utterance: AVSpeechUtterance) {
-        DispatchQueue.main.async {
-            self.isSpeaking = false
-            self.deactivateAudioSession()
-        }
+        DispatchQueue.main.async { self.handleEnd(of: utterance) }
+    }
+
+    /// 読み上げの完了・キャンセル時の後始末。
+    /// 既に次の読み上げを始めている場合（古い utterance の通知）は何もしない。
+    private func handleEnd(of utterance: AVSpeechUtterance) {
+        guard utterances.end(utterance) else { return }
+        isSpeaking = false
+        deactivateAudioSession()
+    }
+}
+
+/// 最後に開始した読み上げを追跡し、それ以外の（古い）読み上げの通知を判別する。
+///
+/// 対象を強参照で保持するため、解放後に同じアドレスの別オブジェクトと
+/// 取り違えることはない。
+struct UtteranceTracker<Item: AnyObject> {
+    private(set) var current: Item?
+
+    /// 新しい読み上げを開始した
+    mutating func begin(_ item: Item) {
+        current = item
+    }
+
+    /// `item` が最後に開始した読み上げか
+    func isCurrent(_ item: Item) -> Bool {
+        current === item
+    }
+
+    /// `item` の読み上げが終わった。最後に開始した読み上げなら追跡を終えて true を返す。
+    /// 古い読み上げの通知なら何もせず false を返す。
+    mutating func end(_ item: Item) -> Bool {
+        guard isCurrent(item) else { return false }
+        current = nil
+        return true
     }
 }
