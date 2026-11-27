@@ -1,0 +1,51 @@
+{
+  "cli_version": "0.13.4",
+  "checkpoint_id": "2af42010edd7",
+  "strategy": "manual-commit",
+  "branch": "feat/tests-and-ci",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "Picton.xcodeproj/project.pbxproj",
+    "Picton.xcodeproj/xcshareddata/xcschemes/Picton.xcscheme",
+    "Picton/PictonApp.swift",
+    "Picton/Services/CardExportImportService.swift",
+    "Picton/Utilities/JapaneseHolidayChecker.swift",
+    "Picton/Views/WhenCategoryView.swift",
+    "PictonTests/CardExportImportServiceTests.swift",
+    "PictonTests/JapaneseHolidayCheckerTests.swift",
+    "PictonTests/PresetImageBootstrapperTests.swift",
+    "PictonTests/SentenceViewModelTests.swift",
+    "PictonUITests/PictonUITests.swift",
+    "project.yml"
+  ],
+  "sessions": [
+    {
+      "metadata": "/2a/f42010edd7/0/metadata.json",
+      "transcript": "/2a/f42010edd7/0/full.jsonl",
+      "compact_transcript": "/2a/f42010edd7/0/transcript.jsonl",
+      "content_hash": "/2a/f42010edd7/0/content_hash.txt",
+      "prompt": "/2a/f42010edd7/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 56,
+    "cache_creation_tokens": 56000,
+    "cache_read_tokens": 3617119,
+    "output_tokens": 32188,
+    "api_call_count": 27
+  },
+  "redaction": {
+    "replacements": 81,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 81,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
