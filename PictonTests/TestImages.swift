@@ -19,6 +19,65 @@ enum TestImages {
         return image.cgImage!
     }
 
+    /// 長辺方向に 赤 1/4・緑 1/2・青 1/4 の帯を並べた画像（スケール 1）
+    ///
+    /// 横長なら左から、縦長なら上から並ぶ。2:1 の画像を中央で正方形に切り出すと、
+    /// ちょうど緑の部分だけが残る。
+    static func bandedImage(width: Int, height: Int) -> UIImage {
+        let format = UIGraphicsImageRendererFormat()
+        format.scale = 1
+        let size = CGSize(width: width, height: height)
+        return UIGraphicsImageRenderer(size: size, format: format).image { ctx in
+            let isLandscape = width >= height
+            let length = CGFloat(isLandscape ? width : height)
+            let bands: [(UIColor, CGFloat, CGFloat)] = [
+                (.red, 0, length / 4),
+                (.green, length / 4, length * 3 / 4),
+                (.blue, length * 3 / 4, length),
+            ]
+            for (color, start, end) in bands {
+                color.setFill()
+                ctx.fill(isLandscape
+                    ? CGRect(x: start, y: 0, width: end - start, height: size.height)
+                    : CGRect(x: 0, y: start, width: size.width, height: end - start))
+            }
+        }
+    }
+
+    enum Channel { case red, green, blue }
+
+    /// 保存された画像の、左上を原点とした正規化座標 (0...1) の画素で最も強い色
+    ///
+    /// 他の 2 色より十分に強くなければ nil。
+    static func dominantChannel(atNormalized point: CGPoint, ofFileAt url: URL) -> Channel? {
+        guard let source = CGImageSourceCreateWithURL(url as CFURL, nil),
+              let image = CGImageSourceCreateImageAtIndex(source, 0, nil)
+        else { return nil }
+
+        var pixel = [UInt8](repeating: 0, count: 4)
+        let drawn: Bool = pixel.withUnsafeMutableBytes { buffer in
+            guard let context = CGContext(
+                data: buffer.baseAddress, width: 1, height: 1, bitsPerComponent: 8, bytesPerRow: 4,
+                space: CGColorSpaceCreateDeviceRGB(),
+                bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue
+            ) else { return false }
+            // CGContext は左下原点。対象の画素が 1×1 のコンテキストに来るよう画像をずらして描く
+            let width = CGFloat(image.width), height = CGFloat(image.height)
+            let x = (width * point.x).rounded(.down)
+            let y = (height * point.y).rounded(.down)
+            context.draw(image, in: CGRect(x: -x, y: -(height - 1 - y), width: width, height: height))
+            return true
+        }
+        guard drawn else { return nil }
+
+        let (r, g, b) = (Int(pixel[0]), Int(pixel[1]), Int(pixel[2]))
+        let margin = 100
+        if r > g + margin, r > b + margin { return .red }
+        if g > r + margin, g > b + margin { return .green }
+        if b > r + margin, b > g + margin { return .blue }
+        return nil
+    }
+
     /// JPEG データ。`withGPS` なら EXIF に位置情報を埋め込む
     static func jpeg(width: Int, height: Int, withGPS: Bool = false) -> Data {
         let data = NSMutableData()

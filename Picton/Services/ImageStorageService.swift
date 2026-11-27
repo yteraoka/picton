@@ -14,14 +14,21 @@ enum ImageStorageService {
     /// 保存される画像は最大 1080px 四方になる。それ以上で展開しても表示は変わらない。
     static let maxDecodedPixelSize = Int(Constants.cardImageSize) * 3
 
+    /// 画像をカード用の正方形（`Constants.cardImageSize` 四方）に切り出して保存する
+    ///
+    /// 縦横比を保ったまま短辺が正方形に収まるよう拡大・縮小し、はみ出した部分は
+    /// 中央を残して切り落とす（アスペクトフィル）。表示側の `.scaledToFill()` と同じ見え方になる。
     static func save(image: UIImage, id: UUID) throws -> URL {
-        let directory = Constants.customImageDirectory
-        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        let side = Constants.cardImageSize
+        guard let drawRect = aspectFillRect(for: image.size, side: side) else {
+            throw ImageStorageError.invalidImage
+        }
 
-        let size = CGSize(width: Constants.cardImageSize, height: Constants.cardImageSize)
+        let size = CGSize(width: side, height: side)
         let renderer = UIGraphicsImageRenderer(size: size)
         let resized = renderer.image { _ in
-            image.draw(in: CGRect(origin: .zero, size: size))
+            // 描画範囲の外（はみ出した部分）は正方形のキャンバスに切り取られる
+            image.draw(in: drawRect)
         }
 
         guard let data = resized.jpegData(compressionQuality: Constants.cardImageCompressionQuality) else {
@@ -29,6 +36,22 @@ enum ImageStorageService {
         }
 
         return try write(imageData: data, id: id)
+    }
+
+    /// `imageSize` の画像を `side` 四方にアスペクトフィルで描くときの描画範囲
+    ///
+    /// 短辺が `side` になるよう縦横同じ倍率で拡大・縮小し、中央に配置する。
+    /// 長辺側は正方形からはみ出す（負の原点になる）。幅か高さが 0 以下なら nil。
+    static func aspectFillRect(for imageSize: CGSize, side: CGFloat) -> CGRect? {
+        guard imageSize.width > 0, imageSize.height > 0, side > 0 else { return nil }
+        let scale = max(side / imageSize.width, side / imageSize.height)
+        let drawSize = CGSize(width: imageSize.width * scale, height: imageSize.height * scale)
+        return CGRect(
+            x: (side - drawSize.width) / 2,
+            y: (side - drawSize.height) / 2,
+            width: drawSize.width,
+            height: drawSize.height
+        )
     }
 
     /// JPEG データをカード画像として保存する
@@ -132,10 +155,13 @@ enum ImageStorageService {
 }
 
 enum ImageStorageError: LocalizedError {
+    case invalidImage
     case compressionFailed
 
     var errorDescription: String? {
         switch self {
+        case .invalidImage:
+            return "画像を読み込めませんでした"
         case .compressionFailed:
             return "画像の圧縮に失敗しました"
         }

@@ -101,6 +101,62 @@ struct ImageStorageServiceTests {
         #expect(ImageStorageService.load(id: UUID()) == nil)
     }
 
+    // MARK: - Aspect fill (#35)
+
+    @Test(arguments: [
+        // (画像の幅, 高さ, 期待する描画範囲 x, y, 幅, 高さ) を 360 四方に描く
+        (400.0, 300.0, -60.0, 0.0, 480.0, 360.0), // 4:3 の横長（カメラ写真）
+        (300.0, 400.0, 0.0, -60.0, 360.0, 480.0), // 3:4 の縦長
+        (1000.0, 1000.0, 0.0, 0.0, 360.0, 360.0), // 正方形は縮小のみ
+        (90.0, 45.0, -180.0, 0.0, 720.0, 360.0), // 小さい画像は拡大して埋める
+    ])
+    func aspectFillRect(
+        width: Double, height: Double, x: Double, y: Double, rectWidth: Double, rectHeight: Double
+    ) throws {
+        let rect = try #require(ImageStorageService.aspectFillRect(
+            for: CGSize(width: width, height: height), side: 360
+        ))
+        #expect(rect == CGRect(x: x, y: y, width: rectWidth, height: rectHeight))
+    }
+
+    @Test func aspectFillRectRejectsEmptySize() {
+        #expect(ImageStorageService.aspectFillRect(for: .zero, side: 360) == nil)
+        #expect(ImageStorageService.aspectFillRect(for: CGSize(width: 10, height: 0), side: 360) == nil)
+    }
+
+    @Test func saveRejectsEmptyImage() {
+        let id = UUID()
+        defer { ImageStorageService.delete(id: id) }
+        #expect(throws: ImageStorageError.self) {
+            try ImageStorageService.save(image: UIImage(), id: id)
+        }
+        #expect(!FileManager.default.fileExists(atPath: TestImages.storedImageURL(id: id).path))
+    }
+
+    /// 横長・縦長の画像は引き伸ばさず、中央を正方形に切り出して保存する
+    ///
+    /// 2:1 の画像の中央の正方形は緑の帯だけなので、四隅まで緑になる。
+    /// 引き伸ばしていると端に赤・青の帯が残る。
+    @Test(arguments: [(800, 400), (400, 800)])
+    func saveCropsCenterSquareWithoutStretching(width: Int, height: Int) throws {
+        let id = UUID()
+        defer { ImageStorageService.delete(id: id) }
+        _ = try ImageStorageService.save(image: TestImages.bandedImage(width: width, height: height), id: id)
+
+        let url = TestImages.storedImageURL(id: id)
+        let properties = try #require(TestImages.properties(ofFileAt: url))
+        let storedWidth = try #require(properties[kCGImagePropertyPixelWidth] as? Int)
+        let storedHeight = try #require(properties[kCGImagePropertyPixelHeight] as? Int)
+        #expect(storedWidth == storedHeight)
+
+        for (x, y) in [(0.05, 0.05), (0.95, 0.05), (0.05, 0.95), (0.95, 0.95), (0.5, 0.5)] {
+            #expect(
+                TestImages.dominantChannel(atNormalized: CGPoint(x: x, y: y), ofFileAt: url) == .green,
+                "(\(x), \(y)) が緑ではない"
+            )
+        }
+    }
+
     @Test func roundTripThroughSave() throws {
         let id = UUID()
         defer { ImageStorageService.delete(id: id) }
