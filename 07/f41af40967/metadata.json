@@ -1,0 +1,40 @@
+{
+  "cli_version": "0.13.4",
+  "checkpoint_id": "07f41af40967",
+  "strategy": "manual-commit",
+  "branch": "fix/sanitize-imported-images",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "Picton.xcodeproj/project.pbxproj"
+  ],
+  "sessions": [
+    {
+      "metadata": "/07/f41af40967/0/metadata.json",
+      "transcript": "/07/f41af40967/0/full.jsonl",
+      "compact_transcript": "/07/f41af40967/0/transcript.jsonl",
+      "content_hash": "/07/f41af40967/0/content_hash.txt",
+      "prompt": "/07/f41af40967/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 64,
+    "cache_creation_tokens": 51362,
+    "cache_read_tokens": 7177440,
+    "output_tokens": 35654,
+    "api_call_count": 28
+  },
+  "redaction": {
+    "replacements": 100,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 100,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
