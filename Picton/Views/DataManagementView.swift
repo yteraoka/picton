@@ -133,7 +133,14 @@ struct DataManagementView: View {
                         importTotal = total
                     }
                 }
-                alertMessage = "\(result.importedCount) 枚のカードをインポートしました"
+                if result.importedCount == 0, result.skippedDuplicateCount > 0 {
+                    alertMessage = "すべてのカード（\(result.skippedDuplicateCount) 枚）は追加済みのため、何も追加しませんでした"
+                } else {
+                    alertMessage = "\(result.importedCount) 枚のカードをインポートしました"
+                }
+                if result.importedCount > 0, result.skippedDuplicateCount > 0 {
+                    alertMessage? += "\n\n\(result.skippedDuplicateCount) 枚は追加済みのためスキップしました"
+                }
                 if result.skippedImageCount > 0 {
                     alertMessage? += "\n\n\(result.skippedImageCount) 枚は画像を読み込めなかったため、画像なしで追加しました"
                 }

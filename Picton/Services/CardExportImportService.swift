@@ -12,6 +12,10 @@ enum CardExportImportService {
         let hasImage: Bool
         /// Export 時の元 UUID（画像ファイル名と対応）
         let imageFileName: String?
+        /// カードの出どころを表す ID。再インポート時の重複検出に使う。
+        /// インポートしたカードは元のカードの ID を引き継ぐ（`PictureCard.originID ?? id`）。
+        /// この項目がない古い ZIP も読めるよう Optional にしている
+        var sourceID: UUID? = nil
     }
 
     struct ExportPayload: Codable {
@@ -88,7 +92,8 @@ enum CardExportImportService {
                 kanaText: card.kanaText,
                 category: card.category,
                 hasImage: hasImage,
-                imageFileName: hasImage ? "\(card.id.uuidString).jpg" : nil
+                imageFileName: hasImage ? "\(card.id.uuidString).jpg" : nil,
+                sourceID: card.originID ?? card.id
             )
         }
 
@@ -173,6 +178,8 @@ enum CardExportImportService {
         let importedCount: Int
         /// 画像として読めない・大きすぎるため、画像なしで取り込んだカード数
         let skippedImageCount: Int
+        /// 既に追加済みのためスキップしたカード数
+        var skippedDuplicateCount: Int = 0
     }
 
     /// DB に追加する前の、検証・画像保存まで済んだカード
@@ -181,6 +188,8 @@ enum CardExportImportService {
         let displayName: String
         let kanaText: String
         let category: String
+        /// 元になったカードの ID（`PictureCard.originID` に保存する）
+        let originID: UUID?
     }
 
     struct PreparedImport: Sendable {
@@ -188,6 +197,59 @@ enum CardExportImportService {
         let skippedImageCount: Int
         /// 保存済みの画像（DB への追加に失敗したら消す）
         let savedImageIDs: [UUID]
+        var skippedDuplicateCount: Int = 0
+    }
+
+    /// 重複判定に使う、既存のカスタムカードの情報
+    struct ExistingCards: Sendable {
+        /// 既存カードの ID と、インポートしたカードの元 ID
+        var ids: Set<UUID> = []
+        /// 出どころの ID を持たない古い ZIP のカード用に、内容で照合する
+        var contents: Set<CardContent> = []
+
+        init() {}
+
+        @MainActor
+        init(context: ModelContext) throws {
+            let customs = try context.fetch(FetchDescriptor<PictureCard>(
+                predicate: #Predicate { $0.isPreset == false }
+            ))
+            for card in customs {
+                ids.insert(card.id)
+                if let originID = card.originID { ids.insert(originID) }
+                contents.insert(CardContent(card.displayName, card.kanaText, card.category))
+            }
+        }
+    }
+
+    struct CardContent: Hashable, Sendable {
+        let displayName: String
+        let kanaText: String
+        let category: String
+
+        init(_ displayName: String, _ kanaText: String, _ category: String) {
+            self.displayName = displayName
+            self.kanaText = kanaText
+            self.category = category
+        }
+    }
+
+    /// カードの出どころの ID。`sourceID` がない古い ZIP では画像ファイル名（`<元の UUID>.jpg`）から取り出す
+    static func sourceID(of card: ExportCard) -> UUID? {
+        if let sourceID = card.sourceID { return sourceID }
+        guard let fileName = card.imageFileName, fileName.hasSuffix(".jpg") else { return nil }
+        return UUID(uuidString: String(fileName.dropLast(".jpg".count)))
+    }
+
+    /// 既に追加済みのカードか
+    ///
+    /// 出どころの ID が分かるカードは ID だけで判定する（内容が同じでも別のカードとして扱う）。
+    /// ID が分からない古い ZIP のカードは、表示名・読み・カテゴリがすべて同じなら追加済みとみなす。
+    static func isDuplicate(_ card: ExportCard, of existing: ExistingCards) -> Bool {
+        if let id = sourceID(of: card) {
+            return existing.ids.contains(id)
+        }
+        return existing.contents.contains(CardContent(card.displayName, card.kanaText, card.category))
     }
 
     /// ZIP ファイルからカスタムカードをインポートする
@@ -202,8 +264,9 @@ enum CardExportImportService {
         context: ModelContext,
         onProgress: @escaping @Sendable (_ completed: Int, _ total: Int) -> Void = { _, _ in }
     ) async throws -> ImportResult {
+        let existing = try ExistingCards(context: context)
         let prepared = try await Task.detached(priority: .userInitiated) {
-            try prepareImport(from: zipURL, onProgress: onProgress)
+            try prepareImport(from: zipURL, existing: existing, onProgress: onProgress)
         }.value
         return try commit(prepared, context: context)
     }
@@ -212,8 +275,10 @@ enum CardExportImportService {
     ///
     /// ZIP は外部から来たデータなので、サイズ・件数・文字列をすべて検証してから画像を保存する。
     /// 不正なカードが 1 枚でもあれば何も保存せずにエラーにする。
+    /// `existing` に既にあるカード（と、同じ ZIP 内で 2 回目以降に出てくるカード）はスキップする。
     static func prepareImport(
         from zipURL: URL,
+        existing: ExistingCards = .init(),
         onProgress: (_ completed: Int, _ total: Int) -> Void = { _, _ in }
     ) throws -> PreparedImport {
         let accessing = zipURL.startAccessingSecurityScopedResource()
@@ -251,8 +316,20 @@ enum CardExportImportService {
         var cards: [PreparedCard] = []
         var savedImageIDs: [UUID] = []
         var skippedImageCount = 0
+        var skippedDuplicateCount = 0
+        // 取り込むと決めたカードも加えていき、同じ ZIP 内の重複も弾く
+        var known = existing
         do {
             for (index, exportCard) in exportCards.enumerated() {
+                let originID = sourceID(of: exportCard)
+                if isDuplicate(exportCard, of: known) {
+                    skippedDuplicateCount += 1
+                    onProgress(index + 1, exportCards.count)
+                    continue
+                }
+                if let originID { known.ids.insert(originID) }
+                known.contents.insert(CardContent(exportCard.displayName, exportCard.kanaText, exportCard.category))
+
                 let newID = UUID()
 
                 // 画像を新 UUID で保存する。ZIP の中身は外部から来たデータなので、
@@ -279,7 +356,8 @@ enum CardExportImportService {
                     id: newID,
                     displayName: exportCard.displayName,
                     kanaText: exportCard.kanaText,
-                    category: exportCard.category
+                    category: exportCard.category,
+                    originID: originID
                 ))
                 onProgress(index + 1, exportCards.count)
             }
@@ -288,7 +366,12 @@ enum CardExportImportService {
             throw error
         }
 
-        return PreparedImport(cards: cards, skippedImageCount: skippedImageCount, savedImageIDs: savedImageIDs)
+        return PreparedImport(
+            cards: cards,
+            skippedImageCount: skippedImageCount,
+            savedImageIDs: savedImageIDs,
+            skippedDuplicateCount: skippedDuplicateCount
+        )
     }
 
     /// 準備したカードを既存カードの後ろに追加する
@@ -308,6 +391,7 @@ enum CardExportImportService {
                     kanaText: prepared.kanaText,
                     category: prepared.category,
                     isPreset: false,
+                    originID: prepared.originID,
                     sortOrder: nextSortOrder,
                     createdAt: Date()
                 ))
@@ -319,7 +403,11 @@ enum CardExportImportService {
             prepared.savedImageIDs.forEach(ImageStorageService.delete(id:))
             throw error
         }
-        return ImportResult(importedCount: prepared.cards.count, skippedImageCount: prepared.skippedImageCount)
+        return ImportResult(
+            importedCount: prepared.cards.count,
+            skippedImageCount: prepared.skippedImageCount,
+            skippedDuplicateCount: prepared.skippedDuplicateCount
+        )
     }
 
     /// インポートするファイルを上限サイズまで読み込む
@@ -363,7 +451,8 @@ enum CardExportImportService {
                 kanaText: kanaText,
                 category: category,
                 hasImage: card.hasImage,
-                imageFileName: card.imageFileName
+                imageFileName: card.imageFileName,
+                sourceID: card.sourceID
             )
         }
     }
