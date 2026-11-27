@@ -1,0 +1,11 @@
+<task-notification>
+<task-id>bz37s95uk</task-id>
+<tool-use-id>toolu_013aDKHA2G1Eg3uQwRxy4Fv1</tool-use-id>
+<output-file>/private/tmp/claude-501/-Users-teraoka-ghq-github-com-yteraoka-picton/58b28800-e54a-4239-954e-4f999c0d98c1/tasks/bz37s95uk.output</output-file>
+<status>completed</status>
+<summary>Background command "Wait for CI on PR 70" completed (exit code 0)</summary>
+</task-notification>
+
+---
+
+merge しました。次に Issue #51 に対応して

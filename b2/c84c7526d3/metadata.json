@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.13.4",
+  "checkpoint_id": "b2c84c7526d3",
+  "strategy": "manual-commit",
+  "branch": "fix/limit-import-size",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "Picton/Services/CardExportImportService.swift",
+    "Picton/Views/DataManagementView.swift",
+    "PictonTests/CardExportImportServiceTests.swift"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b2/c84c7526d3/0/metadata.json",
+      "transcript": "/b2/c84c7526d3/0/full.jsonl",
+      "compact_transcript": "/b2/c84c7526d3/0/transcript.jsonl",
+      "content_hash": "/b2/c84c7526d3/0/content_hash.txt",
+      "prompt": "/b2/c84c7526d3/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 60,
+    "cache_creation_tokens": 94657,
+    "cache_read_tokens": 3650186,
+    "output_tokens": 34695,
+    "api_call_count": 28
+  },
+  "redaction": {
+    "replacements": 122,
+    "layers": {
+      "betterleaks": 0,
+      "connection_string": 0,
+      "credential_key": 0,
+      "credential_value": 0,
+      "credentialed_uri": 0,
+      "entropy": 122,
+      "key_context": 0,
+      "provider_token": 0,
+      "shell_stdin": 0
+    }
+  }
+}
