@@ -222,3 +222,83 @@ struct PresetImageBootstrapperTests {
         #expect(card.sortOrder == 99)
     }
 }
+
+// MARK: - スキーマの移行 (#61)
+
+// プリセットの同期と同じく起動時のストアの扱いに関わるため、ここに置く
+// （専用のテストファイルを追加するには xcodegen での再生成が必要）。
+@MainActor
+@Suite("SchemaMigration")
+struct SchemaMigrationTests {
+    private func makeStoreURL() throws -> (directory: URL, store: URL) {
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent("picton-migration-\(UUID().uuidString)", isDirectory: true)
+        try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+        return (directory, directory.appendingPathComponent("test.store"))
+    }
+
+    /// バージョン管理を導入する前と同じ方法（ModelContainer(for:)）で作った V1 のストアを
+    /// 移行計画付きで開くと、データを保ったまま V2 になり、重複した ID は 1 枚になる
+    @Test func migratesUnversionedV1StoreAndRemovesDuplicateIDs() throws {
+        let (directory, url) = try makeStoreURL()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        let duplicatedID = UUID()
+        let originID = UUID()
+        do {
+            let v1 = try ModelContainer(
+                for: PictonSchemaV1.PictureCard.self,
+                configurations: ModelConfiguration(url: url)
+            )
+            let context = v1.mainContext
+            let keep = PictonSchemaV1.PictureCard(
+                id: duplicatedID, displayName: "残す", kanaText: "のこす", category: "生活",
+                originID: originID, sortOrder: 1, isHidden: true
+            )
+            keep.imageVersion = 3
+            context.insert(keep)
+            context.insert(PictonSchemaV1.PictureCard(
+                id: duplicatedID, displayName: "重複", kanaText: "じゅうふく", category: "生活", sortOrder: 5
+            ))
+            context.insert(PictonSchemaV1.PictureCard(
+                displayName: "公園", kanaText: "こうえん", category: "場所",
+                isPreset: true, presetImageName: "tree.fill", presetID: "place.park", sortOrder: 0
+            ))
+            try context.save()
+        }
+
+        let v2 = try PictonModelContainer.make(url: url)
+        let cards = try v2.mainContext.fetch(FetchDescriptor<PictureCard>(sortBy: [SortDescriptor(\.sortOrder)]))
+
+        #expect(cards.map(\.displayName) == ["公園", "残す"])
+        let kept = try #require(cards.last)
+        #expect(kept.id == duplicatedID)
+        #expect(kept.originID == originID)
+        #expect(kept.isHidden)
+        #expect(kept.imageVersion == 3)
+        let preset = try #require(cards.first)
+        #expect(preset.isPreset)
+        #expect(preset.presetID == "place.park")
+        #expect(preset.presetImageName == "tree.fill")
+    }
+
+    /// 一度 V2 で開いたストアは、もう一度開いても問題ない
+    @Test func reopeningV2StoreKeepsData() throws {
+        let (directory, url) = try makeStoreURL()
+        defer { try? FileManager.default.removeItem(at: directory) }
+
+        do {
+            let container = try PictonModelContainer.make(url: url)
+            container.mainContext.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活"))
+            try container.mainContext.save()
+        }
+        let reopened = try PictonModelContainer.make(url: url)
+        #expect(try reopened.mainContext.fetchCount(FetchDescriptor<PictureCard>()) == 1)
+    }
+
+    @Test func latestSchemaIsCurrentModel() throws {
+        let latest = try #require(PictonMigrationPlan.schemas.last)
+        #expect(ObjectIdentifier(latest) == ObjectIdentifier(PictonSchemaV2.self))
+        #expect(PictonMigrationPlan.stages.count == PictonMigrationPlan.schemas.count - 1)
+    }
+}

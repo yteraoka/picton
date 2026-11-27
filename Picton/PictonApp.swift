@@ -8,14 +8,7 @@ struct PictonApp: App {
     init() {
         do {
             // UI テストでは毎回まっさらな状態から始めるため、メモリ上のストアを使う
-            if Constants.isUITesting {
-                container = try ModelContainer(
-                    for: PictureCard.self,
-                    configurations: ModelConfiguration(isStoredInMemoryOnly: true)
-                )
-            } else {
-                container = try ModelContainer(for: PictureCard.self)
-            }
+            container = try PictonModelContainer.make(isStoredInMemoryOnly: Constants.isUITesting)
             PresetImageBootstrapper.bootstrapIfNeeded(context: container.mainContext)
             ImageStorageService.applyCompleteFileProtection()
             CardExportImportService.cleanUpExportDirectory()
