@@ -16,6 +16,11 @@ struct ContentView: View {
     @State private var dragOffset: CGFloat = 0
     @State private var viewWidth: CGFloat = 0
     @State private var isHorizontalDrag = false
+    /// 横ドラッグが始まるたびに増やす。ドラッグ終了後の遅延リセットが、次のドラッグ中に効かないようにする
+    @State private var horizontalDragGeneration = 0
+    /// カテゴリ切り替えのアニメーションごとのトークン。連続で切り替えたとき、
+    /// 古いアニメーションの完了処理が新しい状態を上書きしないようにする (#42)
+    @State private var categorySwitchToken = UUID()
     @State private var showVoiceUnavailableAlert = false
 
     var body: some View {
@@ -80,6 +85,7 @@ struct ContentView: View {
                                 guard isH || isV else { return }
                                 guard isH else { return } // 縦なら何もしない
                                 isHorizontalDrag = true
+                                horizontalDragGeneration += 1
                             }
                             let categories = Constants.allCategories
                             let idx = categories.firstIndex(of: libraryVM.selectedCategory) ?? 0
@@ -93,7 +99,12 @@ struct ContentView: View {
                         }
                         .onEnded { value in
                             let wasHorizontal = isHorizontalDrag
-                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                            // ドラッグを終えた直後のタップでカードが追加されないよう、少し遅らせて戻す。
+                            // その間に次の横ドラッグが始まっていたら何もしない
+                            let generation = horizontalDragGeneration
+                            Task {
+                                try? await Task.sleep(for: .milliseconds(100))
+                                guard horizontalDragGeneration == generation else { return }
                                 isHorizontalDrag = false
                             }
                             guard wasHorizontal else { return }
@@ -101,18 +112,12 @@ struct ContentView: View {
                             let categories = Constants.allCategories
                             guard let currentIndex = categories.firstIndex(of: libraryVM.selectedCategory) else { return }
                             if value.translation.width < -threshold, currentIndex < categories.count - 1 {
-                                withAnimation(.spring(duration: 0.3)) { dragOffset = -width }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
-                                    libraryVM.selectedCategory = categories[currentIndex + 1]
-                                    dragOffset = 0
-                                }
+                                slideCategory(to: categories[currentIndex + 1], offset: -width)
                             } else if value.translation.width > threshold, currentIndex > 0 {
-                                withAnimation(.spring(duration: 0.3)) { dragOffset = width }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
-                                    libraryVM.selectedCategory = categories[currentIndex - 1]
-                                    dragOffset = 0
-                                }
+                                slideCategory(to: categories[currentIndex - 1], offset: width)
                             } else {
+                                // 戻すだけのときも、進行中の切り替えの完了処理を無効にする
+                                categorySwitchToken = UUID()
                                 withAnimation(.spring(duration: 0.3)) { dragOffset = 0 }
                             }
                         },
@@ -173,8 +178,20 @@ struct ContentView: View {
               let currentIndex = categories.firstIndex(of: libraryVM.selectedCategory),
               newIndex != currentIndex else { return }
         let direction: CGFloat = newIndex > currentIndex ? -1 : 1
-        withAnimation(.spring(duration: 0.3)) { dragOffset = direction * viewWidth }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.32) {
+        slideCategory(to: newCategory, offset: direction * viewWidth)
+    }
+
+    /// 現在のカテゴリを `offset` まで滑らせ、アニメーションが終わったら `newCategory` に切り替える
+    ///
+    /// 以前はアニメーション時間（0.3 秒）に合わせた固定の待ち時間（0.32 秒）で切り替えていたため、
+    /// 片方だけ変えるとずれ、連続で切り替えると古い待ち処理が後から状態を乱していた (#42)。
+    private func slideCategory(to newCategory: String, offset: CGFloat) {
+        let token = UUID()
+        categorySwitchToken = token
+        withAnimation(.spring(duration: 0.3), completionCriteria: .logicallyComplete) {
+            dragOffset = offset
+        } completion: {
+            guard categorySwitchToken == token else { return }
             libraryVM.selectedCategory = newCategory
             dragOffset = 0
         }
