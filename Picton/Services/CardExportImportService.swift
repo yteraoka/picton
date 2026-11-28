@@ -29,6 +29,8 @@ enum CardExportImportService {
     enum ExportImportError: LocalizedError, Equatable {
         case noCustomCards
         case invalidZip
+        /// 圧縮されている・データディスクリプタを使っているなど、本アプリが書き出さない形式の ZIP
+        case unsupportedZipFormat
         case invalidManifest
         case writeFailed
         case fileTooLarge
@@ -42,6 +44,8 @@ enum CardExportImportService {
             switch self {
             case .noCustomCards: return "エクスポートするカスタムカードがありません"
             case .invalidZip: return "ZIPファイルを読み込めませんでした"
+            case .unsupportedZipFormat:
+                return "このZIP形式には対応していません。Picton でエクスポートしたZIPファイルを選択してください（Finder などで圧縮し直したZIPは読み込めません）"
             case .invalidManifest: return "カードデータが不正です"
             case .writeFailed: return "ファイルの書き込みに失敗しました"
             case .fileTooLarge:
@@ -575,6 +579,8 @@ enum CardExportImportService {
     ///
     /// 外部から受け取ったファイルを扱うため、すべての読み取りで範囲を検証し、
     /// 不正・破損した入力に対してはクラッシュせず `invalidZip` を投げる。
+    /// 本アプリが書き出す無圧縮（store）以外のエントリや、サイズを後ろのデータディスクリプタに置く
+    /// エントリ（Finder などで作った ZIP）は `unsupportedZipFormat` を投げる (#39)。
     /// エントリが `maxEntryCount` を超えたら `tooManyEntries` を投げる。
     /// 各エントリの `data` は `data` を共有するスライス（コピーしない）。
     static func parseZip(data: Data, maxEntryCount: Int = maxZipEntryCount) throws -> [ZipEntry] {
@@ -584,11 +590,19 @@ enum CardExportImportService {
         while let signature = data.readUInt32(at: offset), signature == 0x04034b50 {
             guard entries.count < maxEntryCount else { throw ExportImportError.tooManyEntries }
             guard offset + localFileHeaderSize <= data.count,
+                  let flags = data.readUInt16(at: offset + 6),
+                  let compressionMethod = data.readUInt16(at: offset + 8),
                   let crc = data.readUInt32(at: offset + 14),
                   let compressedSize = data.readUInt32(at: offset + 18),
                   let nameLength = data.readUInt16(at: offset + 26),
                   let extraLength = data.readUInt16(at: offset + 28)
             else { throw ExportImportError.invalidZip }
+
+            // 圧縮方式 0（store）以外は展開できない。フラグの bit 3（データディスクリプタ）が立っていると
+            // ローカルヘッダのサイズが 0 になっていて、エントリの終わりが分からない
+            guard compressionMethod == 0, flags & 0x0008 == 0 else {
+                throw ExportImportError.unsupportedZipFormat
+            }
 
             let nameStart = offset + localFileHeaderSize
             let nameEnd = nameStart + Int(nameLength)
@@ -599,7 +613,7 @@ enum CardExportImportService {
                   let fileData = data.slice(from: dataStart, to: dataEnd)
             else { throw ExportImportError.invalidZip }
 
-            // 破損ファイルや非対応の圧縮形式（deflate など）はここで弾かれる
+            // 破損したファイルはここで弾かれる
             guard crc32(fileData) == crc else { throw ExportImportError.invalidZip }
 
             let name = String(data: nameData, encoding: .utf8) ?? ""
