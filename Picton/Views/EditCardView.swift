@@ -14,6 +14,8 @@ struct EditCardView: View {
     @State private var existingImage: UIImage?
     /// 写真選択・カメラで差し替えた画像。nil なら画像は変更しない
     @State private var newImage: UIImage?
+    /// 「画像を削除」を押した。保存すると画像なしのカードになる (#46)
+    @State private var removesImage = false
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var showCamera = false
     @State private var showDeleteConfirmation = false
@@ -30,7 +32,10 @@ struct EditCardView: View {
         _isHidden = State(initialValue: card.isHidden)
     }
 
-    private var previewImage: UIImage? { newImage ?? existingImage }
+    private var previewImage: UIImage? {
+        if let newImage { return newImage }
+        return removesImage ? nil : existingImage
+    }
 
     var body: some View {
         NavigationStack {
@@ -63,8 +68,25 @@ struct EditCardView: View {
                                 .buttonStyle(.bordered)
 
                                 CameraButton(showCamera: $showCamera)
+
+                                if previewImage != nil {
+                                    // 確定は「保存」時。押しただけではプレビューから消えるだけ
+                                    Button(role: .destructive) {
+                                        newImage = nil
+                                        photosPickerItem = nil
+                                        removesImage = true
+                                    } label: {
+                                        Label("画像を削除", systemImage: "trash")
+                                            .frame(maxWidth: .infinity)
+                                    }
+                                    .buttonStyle(.bordered)
+                                }
                             }
                         }
+                    }
+                    // 削除を押したあとに写真・カメラで選び直したら、そちらを使う
+                    .onChange(of: newImage != nil) { _, hasNewImage in
+                        if hasNewImage { removesImage = false }
                     }
                 }
 
@@ -159,12 +181,15 @@ struct EditCardView: View {
             }
         }
 
+        // 画像の削除は、カードの保存に成功してからファイルを消す（失敗したら画像を残す）(#46)
+        let deletesImage = !card.isPreset && !replacesImage && removesImage && existingImage != nil
+
         card.displayName = displayName
         card.kanaText = kanaText
         card.category = selectedCategory
         card.isHidden = isHidden
-        if replacesImage {
-            // 一覧・文エリアのサムネイルに差し替えを反映させる (#56)
+        if replacesImage || deletesImage {
+            // 一覧・文エリアのサムネイルに差し替え・削除を反映させる (#56)
             card.imageVersion += 1
         }
 
@@ -175,6 +200,9 @@ struct EditCardView: View {
             modelContext.rollback()
             errorAlert = .saveFailed(error)
             return
+        }
+        if deletesImage {
+            ImageStorageService.delete(id: card.id)
         }
         dismiss()
     }
