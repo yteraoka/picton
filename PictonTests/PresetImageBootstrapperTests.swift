@@ -304,6 +304,41 @@ struct SchemaMigrationTests {
         #expect(try reopened.mainContext.fetchCount(FetchDescriptor<PictureCard>()) == 1)
     }
 
+    /// #40: 開けないストア（壊れたファイル）は退避して新しいストアで起動する
+    @Test func recoversFromUnreadableStoreByMovingItAside() throws {
+        let (directory, url) = try makeStoreURL()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        try Data("this is not a SQLite database".utf8).write(to: url)
+
+        let (container, recovery) = PictonModelContainer.makeRecovering(url: url)
+
+        let result = try #require(recovery)
+        #expect(!result.isStoredInMemoryOnly)
+        let backup = try #require(result.backupURL)
+        #expect(backup.lastPathComponent.hasPrefix("test.store.broken-"))
+        // 退避したファイルは元の中身のまま残っている
+        #expect(try Data(contentsOf: backup) == Data("this is not a SQLite database".utf8))
+
+        // 新しいストアは読み書きできる
+        container.mainContext.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活"))
+        try container.mainContext.save()
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PictureCard>()) == 1)
+    }
+
+    @Test func healthyStoreOpensWithoutRecovery() throws {
+        let (directory, url) = try makeStoreURL()
+        defer { try? FileManager.default.removeItem(at: directory) }
+        do {
+            let container = try PictonModelContainer.make(url: url)
+            container.mainContext.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活"))
+            try container.mainContext.save()
+        }
+
+        let (container, recovery) = PictonModelContainer.makeRecovering(url: url)
+        #expect(recovery == nil)
+        #expect(try container.mainContext.fetchCount(FetchDescriptor<PictureCard>()) == 1)
+    }
+
     @Test func latestSchemaIsCurrentModel() throws {
         let latest = try #require(PictonMigrationPlan.schemas.last)
         #expect(ObjectIdentifier(latest) == ObjectIdentifier(PictonSchemaV2.self))

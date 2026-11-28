@@ -173,6 +173,72 @@ enum PictonModelContainer {
         }
         return try ModelContainer(for: schema, migrationPlan: PictonMigrationPlan.self)
     }
+
+    /// ストアを開けなかったときに、どう立ち直ったか
+    struct Recovery: Sendable, Equatable {
+        /// 開けなかったストアを退避した場所。退避できなかった場合は nil
+        let backupURL: URL?
+        /// 新しいストアも作れず、メモリ上のストアで起動した（変更は保存されない）
+        let isStoredInMemoryOnly: Bool
+    }
+
+    /// アプリ用の ModelContainer を作る。ストアを開けなくてもアプリを起動できるようにする (#40)
+    ///
+    /// 移行の失敗やファイルの破損でストアを開けないと、以前は fatalError で起動直後に落ち続け、
+    /// 意思伝達に使えなくなっていた。開けない場合は次の順で立ち直る。
+    /// 1. ストアのファイルを日時付きの名前に退避し、新しいストアを作る（プリセットのカードで使える）
+    /// 2. それも失敗したら、メモリ上のストアで起動する
+    ///
+    /// - Parameters:
+    ///   - url: ストアの場所（テスト用）。nil なら既定の場所
+    ///   - now: 退避するファイル名に使う日時（テスト用）
+    /// - Returns: 作った ModelContainer と、立ち直った場合はその内容
+    static func makeRecovering(url: URL? = nil, now: Date = Date()) -> (ModelContainer, Recovery?) {
+        do {
+            return (try make(url: url), nil)
+        } catch {
+            AppLog.data.error("Failed to open the store: \(error)")
+        }
+
+        let storeURL = url ?? ModelConfiguration().url
+        let backupURL = moveStoreAside(at: storeURL, now: now)
+        do {
+            return (try make(url: url), Recovery(backupURL: backupURL, isStoredInMemoryOnly: false))
+        } catch {
+            AppLog.data.error("Failed to create a new store: \(error)")
+        }
+
+        do {
+            return (try make(isStoredInMemoryOnly: true), Recovery(backupURL: backupURL, isStoredInMemoryOnly: true))
+        } catch {
+            // メモリ上のストアも作れないのはスキーマ定義の誤りなどで、続行できない
+            fatalError("Failed to create an in-memory ModelContainer: \(error)")
+        }
+    }
+
+    /// ストアのファイル（本体と -shm / -wal）を `<名前>.broken-<日時>` に移す。本体を移せたらその場所を返す
+    private static func moveStoreAside(at storeURL: URL, now: Date) -> URL? {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        let suffix = "broken-\(formatter.string(from: now))"
+
+        let fileManager = FileManager.default
+        var movedStore: URL?
+        for fileSuffix in ["", "-shm", "-wal"] {
+            let source = URL(fileURLWithPath: storeURL.path + fileSuffix)
+            guard fileManager.fileExists(atPath: source.path) else { continue }
+            let destination = URL(fileURLWithPath: storeURL.path + ".\(suffix)" + fileSuffix)
+            do {
+                try fileManager.moveItem(at: source, to: destination)
+                if fileSuffix.isEmpty { movedStore = destination }
+            } catch {
+                AppLog.data.error("Failed to move \(source.lastPathComponent, privacy: .public) aside: \(error)")
+            }
+        }
+        return movedStore
+    }
 }
 
 extension ModelContext {
