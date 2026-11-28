@@ -215,7 +215,7 @@ struct ContentView: View {
                 for (index, card) in cards.enumerated() {
                     card.sortOrder = index
                 }
-                try? modelContext.save()
+                modelContext.saveOrRollback("reorder cards")
                 // ドラッグ中の移動ごとに呼ばれるため、軽い selection tick にする
                 UISelectionFeedbackGenerator().selectionChanged()
             } : nil

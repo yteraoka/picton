@@ -91,6 +91,14 @@ struct PresetImageBootstrapperTests {
         #expect(customs.map(\.displayName) == ["マイ渋谷"])
     }
 
+    /// saveOrRollback は成功すれば変更を確定する (#38)
+    @Test func saveOrRollbackSavesChanges() throws {
+        context.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活"))
+        #expect(context.saveOrRollback("test"))
+        #expect(!context.hasChanges)
+        #expect(try context.fetchCount(FetchDescriptor<PictureCard>()) == 1)
+    }
+
     @Test func presetDefinitionsHaveUniqueIDs() {
         // presetID で既存判定するため、重複があると追加漏れになる
         let ids = PresetCardData.all.map(\.id)

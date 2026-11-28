@@ -175,6 +175,25 @@ enum PictonModelContainer {
     }
 }
 
+extension ModelContext {
+    /// 保存し、失敗したらログに残して保存前の状態に戻す
+    ///
+    /// 並べ替えや表示の切り替えなど、失敗を利用者に伝えるほどではない操作で使う。
+    /// 失敗を伝えるべき操作（カードの追加・編集・削除）は `save()` の失敗を自分で扱う (#38)。
+    /// - Parameter action: ログに残す操作の名前
+    @discardableResult
+    func saveOrRollback(_ action: String) -> Bool {
+        do {
+            try save()
+            return true
+        } catch {
+            AppLog.data.error("Failed to save (\(action, privacy: .public)): \(error)")
+            rollback()
+            return false
+        }
+    }
+}
+
 /// カードの表示・読み上げに必要な情報だけを持つ値型スナップショット。
 ///
 /// 文エリアなど、SwiftData の `@Model` オブジェクトの寿命と切り離して

@@ -194,9 +194,16 @@ enum ImageStorageService {
         return CGImageSourceCreateThumbnailAtIndex(source, 0, thumbnailOptions)
     }
 
+    /// カード画像を削除する。画像がもともとないのは正常なので、それ以外の失敗だけログに残す
     static func delete(id: UUID) {
         let fileURL = Constants.customImageDirectory.appendingPathComponent("\(id.uuidString).jpg")
-        try? FileManager.default.removeItem(at: fileURL)
+        do {
+            try FileManager.default.removeItem(at: fileURL)
+        } catch let error as CocoaError where error.code == .fileNoSuchFile {
+            // 画像なしのカード
+        } catch {
+            AppLog.image.error("Failed to delete image \(id, privacy: .public): \(error)")
+        }
     }
 
     /// 既存の画像ファイルとディレクトリに `.complete` の保護クラスを適用する
@@ -215,7 +222,11 @@ enum ImageStorageService {
             let current = (try? fileManager.attributesOfItem(atPath: url.path))?[.protectionKey]
                 as? FileProtectionType
             guard current != .complete else { continue }
-            try? fileManager.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
+            do {
+                try fileManager.setAttributes([.protectionKey: FileProtectionType.complete], ofItemAtPath: url.path)
+            } catch {
+                AppLog.image.error("Failed to apply file protection to \(url.lastPathComponent, privacy: .public): \(error)")
+            }
         }
     }
 }

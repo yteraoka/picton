@@ -33,7 +33,7 @@ struct HiddenCardsListView: View {
 
                         Button("表示する") {
                             card.isHidden = false
-                            try? modelContext.save()
+                            modelContext.saveOrRollback("unhide card")
                         }
                         .buttonStyle(.bordered)
                         .tint(.accentColor)

@@ -108,8 +108,13 @@ enum CardExportImportService {
         for card in customCards {
             let fileURL = Constants.customImageDirectory
                 .appendingPathComponent("\(card.id.uuidString).jpg")
-            if let data = try? Data(contentsOf: fileURL) {
+            guard exportCards.contains(where: { $0.imageFileName == fileURL.lastPathComponent }) else { continue }
+            do {
+                let data = try Data(contentsOf: fileURL)
                 imageEntries.append((name: "images/\(card.id.uuidString).jpg", data: data))
+            } catch {
+                // 画像なしとして書き出す（cards.json 側は画像ありのままなので、インポート時は画像なしになる）
+                AppLog.transfer.error("Failed to read image for export \(card.id, privacy: .public): \(error)")
             }
         }
 
