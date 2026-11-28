@@ -14,8 +14,6 @@ enum Constants {
 
     enum Colors {
         static let sentenceAreaBackground = Color(.systemGray6)
-        static let cardBackground = Color(.secondarySystemGroupedBackground)
-        static let cardBorder = Color(.systemGray4)
         static let categorySelected = Color.blue
         static let categoryDefault = Color(.systemGray5)
     }

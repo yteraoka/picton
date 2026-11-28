@@ -35,7 +35,6 @@
 		C2FF68F733470C5D6ACA4AD6 /* TestImages.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B2A80AD8343DE7C1B28F7E4 /* TestImages.swift */; };
 		D44D3BBC3339A23BDF721FAA /* WhenCategoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B8646D2ABAF6433B07A7BECB /* WhenCategoryView.swift */; };
 		D8AD0A0E4962241A1A64A6F4 /* HiddenCardsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AAF55ECBFD3F2626B081A037 /* HiddenCardsListView.swift */; };
-		DF1F9FEEF2601E5B7151E803 /* CardLibraryViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 99AC4908AD56C1523103ECAD /* CardLibraryViewModel.swift */; };
 		E0F5A5C61D534A1297BDBB55 /* JapaneseHolidayCheckerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBD63B8623749B7E4C41D9C8 /* JapaneseHolidayCheckerTests.swift */; };
 		F5238899DF1BC3E53F9AF331 /* DataManagementView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B5AAFF5C3C96882F7B713D8 /* DataManagementView.swift */; };
 		FCD0B820B5DBF707AD647784 /* SentenceAreaView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A788C755291614D2171FCE0A /* SentenceAreaView.swift */; };
@@ -76,7 +75,6 @@
 		8337B3EF325DB614D81E8F0A /* ImageStorageServiceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageStorageServiceTests.swift; sourceTree = "<group>"; };
 		9670A17CA721318E55B62A9F /* SentenceViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceViewModelTests.swift; sourceTree = "<group>"; };
 		96DE31985C7F5A7644DC98AF /* SentenceViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceViewModel.swift; sourceTree = "<group>"; };
-		99AC4908AD56C1523103ECAD /* CardLibraryViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CardLibraryViewModel.swift; sourceTree = "<group>"; };
 		9DA7BB58BB59974C837254C0 /* TTSService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TTSService.swift; sourceTree = "<group>"; };
 		A279124BD7ACE599D2DCE4C1 /* Picton.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Picton.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A788C755291614D2171FCE0A /* SentenceAreaView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SentenceAreaView.swift; sourceTree = "<group>"; };
@@ -170,7 +168,6 @@
 		D61069F1A150FBB740B5093A /* ViewModels */ = {
 			isa = PBXGroup;
 			children = (
-				99AC4908AD56C1523103ECAD /* CardLibraryViewModel.swift */,
 				96DE31985C7F5A7644DC98AF /* SentenceViewModel.swift */,
 			);
 			path = ViewModels;
@@ -339,7 +336,6 @@
 				A51C24CC202385C4A01FABED /* CardGridItemView.swift in Sources */,
 				0EC2016EEF58229B2688718A /* CardGridView.swift in Sources */,
 				877103D29CBA03F2A573641A /* CardImageView.swift in Sources */,
-				DF1F9FEEF2601E5B7151E803 /* CardLibraryViewModel.swift in Sources */,
 				58E3D46184CE6AC5047C40D1 /* Constants.swift in Sources */,
 				57A0BDAA1006CCCA4B5B6D0D /* ContentView.swift in Sources */,
 				F5238899DF1BC3E53F9AF331 /* DataManagementView.swift in Sources */,
