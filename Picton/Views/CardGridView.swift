@@ -81,7 +81,7 @@ struct CardGridView<Header: View>: View {
                     draggedCard = card
                     // この provider へのドロップイベントはまだ届いていない
                     isDragActive = false
-                    return DragSessionItemProvider(cardID: card.id) { [dragEnd] in
+                    return DragSessionItemProvider(id: card.id) { [dragEnd] in
                         dragEnd.endedToken = token
                     }
                 }
@@ -151,14 +151,15 @@ extension CardGridView where Header == EmptyView {
 /// provider を解放することを利用して後始末する
 ///
 /// 解放（deinit）はどのスレッドで起きるか決まっていないため、後始末はメインアクターで実行する (#62)。
-private final class DragSessionItemProvider: NSItemProvider {
+/// カードグリッドと文エリアの並べ替えで共用する (#45)。
+final class DragSessionItemProvider: NSItemProvider {
     private let onEnd: @MainActor @Sendable () -> Void
 
-    init(cardID: UUID, onEnd: @escaping @MainActor @Sendable () -> Void) {
+    init(id: UUID, onEnd: @escaping @MainActor @Sendable () -> Void) {
         self.onEnd = onEnd
         super.init()
-        // NSItemProvider(object:) と同じく、カード ID を文字列として渡す
-        registerObject(cardID.uuidString as NSString, visibility: .all)
+        // NSItemProvider(object:) と同じく、ID を文字列として渡す
+        registerObject(id.uuidString as NSString, visibility: .all)
     }
 
     deinit {
@@ -170,7 +171,7 @@ private final class DragSessionItemProvider: NSItemProvider {
 /// ドラッグセッションの終了の知らせ。最後に終了したセッションのトークンを持つ
 @MainActor
 @Observable
-private final class DragEndSignal {
+final class DragEndSignal {
     var endedToken: UUID?
 }
 
