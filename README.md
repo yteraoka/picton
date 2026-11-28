@@ -137,6 +137,8 @@ xcodebuild test -project Picton.xcodeproj -scheme Picton \
 - UI テストは起動引数 `--uitesting` でアプリをインメモリストアで起動するため、シミュレータ上の既存データには影響しません
 - Pull Request と main への push では GitHub Actions（`.github/workflows/ci.yml`）で
   `project.pbxproj` の生成チェック、ビルド、ユニットテスト、UI テストを実行します
+- `v1.2.3` 形式のタグを push すると（`.github/workflows/testflight.yml`）TestFlight にアップロードします。
+  必要な Secrets などは [docs/app-store-release.md](docs/app-store-release.md#github-actions-で-testflight-にアップロードする) を参照
 
 ## 使い方
 

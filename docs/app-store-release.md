@@ -88,6 +88,38 @@ Product → Archive → Validate App → Distribute App → App Store Connect
 - TestFlight 内部テストで実機確認（特に iPad 横向きと日本語音声）
 - 審査は通常 1〜3 日。初回は長めに見ておく
 
+### GitHub Actions で TestFlight にアップロードする
+
+`v1.2.3` 形式のタグを push すると `.github/workflows/testflight.yml` が
+アーカイブして App Store Connect にアップロードする（処理後に TestFlight に表示される）。
+
+```sh
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+- `MARKETING_VERSION` はタグから（`v1.2.3` → `1.2.3`）、`CURRENT_PROJECT_VERSION`（ビルド番号）は
+  ワークフローの実行番号から自動で設定する。`project.yml` の値は書き換えなくてよい
+- Xcode から手動でアップロードしたビルド番号と衝突した場合は、もう一度タグを打ち直す
+  （同じバージョンでは一度使ったビルド番号を再利用できない）
+- 署名は App Store Connect API キーによる自動署名（クラウド署名）で行うため、
+  証明書やプロビジョニングプロファイルを Secrets に入れる必要はない
+
+#### 初回の準備
+
+1. App Store Connect → ユーザとアクセス → 統合 → App Store Connect API で
+   **チームキー** を作成する。クラウド署名で配布用証明書を扱うため、アクセス権は **Admin** にする
+2. ダウンロードした `AuthKey_XXXXXXXXXX.p8` と、キー ID・Issuer ID をリポジトリの
+   Settings → Secrets and variables → Actions に登録する
+
+| Secret | 値 |
+| --- | --- |
+| `APP_STORE_CONNECT_API_KEY_ID` | キー ID |
+| `APP_STORE_CONNECT_API_ISSUER_ID` | Issuer ID |
+| `APP_STORE_CONNECT_API_KEY_P8` | `.p8` ファイルの中身（`-----BEGIN PRIVATE KEY-----` から末尾まで） |
+
+3. App Store Connect にアプリ（Bundle ID `me.teraoka.Picton`）が作成済みであること
+
 ## 5. リリース前チェックリスト
 
 - [ ] Xcode 26 / iOS 26 SDK でアーカイブした
