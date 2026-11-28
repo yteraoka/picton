@@ -477,6 +477,74 @@ struct CardReimportTests {
         #expect(payload.cards.map(\.sourceID) == [original.id, imported.originID])
     }
 
+    // MARK: - 並び順と非表示 (#41)
+
+    private func decodePayload(at url: URL) throws -> Service.ExportPayload {
+        let entries = try Service.parseZip(data: Data(contentsOf: url))
+        let json = try #require(entries.first { $0.name == "cards.json" })
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        return try decoder.decode(Service.ExportPayload.self, from: json.data)
+    }
+
+    @MainActor
+    @Test func exportV2IncludesSortOrderAndHidden() throws {
+        let container = try makeContainer()
+        let context = container.mainContext
+        context.insert(PictureCard(displayName: "いぬ", kanaText: "いぬ", category: "生活", sortOrder: 2))
+        context.insert(PictureCard(displayName: "ねこ", kanaText: "ねこ", category: "生活", sortOrder: 5, isHidden: true))
+        try context.save()
+
+        let url = try export(context)
+        defer { Service.removeExportedFile(at: url) }
+        let payload = try decodePayload(at: url)
+
+        #expect(payload.version == 2)
+        #expect(payload.cards.map(\.displayName) == ["いぬ", "ねこ"])
+        #expect(payload.cards.map(\.sortOrder) == [2, 5])
+        #expect(payload.cards.map(\.isHidden) == [false, true])
+    }
+
+    /// 別の端末にインポートすると、既存カードの後ろに元の相対的な順序で並び、非表示も復元される
+    @MainActor
+    @Test func importRestoresRelativeOrderAndHidden() async throws {
+        let deviceA = try makeContainer()
+        for (name, order, hidden) in [("あ", 10, false), ("い", 3, true), ("う", 7, false)] {
+            deviceA.mainContext.insert(PictureCard(
+                displayName: name, kanaText: name, category: "生活", sortOrder: order, isHidden: hidden
+            ))
+        }
+        try deviceA.mainContext.save()
+        let url = try export(deviceA.mainContext)
+        defer { Service.removeExportedFile(at: url) }
+
+        let deviceB = try makeContainer()
+        deviceB.mainContext.insert(PictureCard(displayName: "既存", kanaText: "きそん", category: "人", sortOrder: 0))
+        try deviceB.mainContext.save()
+
+        let result = try await Service.importCards(from: url, context: deviceB.mainContext)
+        #expect(result.importedCount == 3)
+
+        let imported = try customCards(in: deviceB.mainContext).filter { $0.category == "生活" }
+        #expect(imported.map(\.displayName) == ["い", "う", "あ"])
+        #expect(imported.map(\.sortOrder) == [1, 2, 3])
+        #expect(imported.map(\.isHidden) == [true, false, false])
+    }
+
+    /// version 1 の ZIP（並び順・非表示なし）も引き続き読め、ZIP 内の順で表示状態のまま追加される
+    @MainActor
+    @Test func importsVersion1ZipInFileOrder() async throws {
+        let container = try makeContainer()
+        let url = try writeTempZip([("cards.json", try manifest([card("いぬ"), card("ねこ")]))])
+        defer { try? FileManager.default.removeItem(at: url) }
+
+        let result = try await Service.importCards(from: url, context: container.mainContext)
+        #expect(result.importedCount == 2)
+        let imported = try customCards(in: container.mainContext)
+        #expect(imported.map(\.displayName) == ["いぬ", "ねこ"])
+        #expect(imported.allSatisfy { !$0.isHidden })
+    }
+
     /// 自分でエクスポートした ZIP を同じ端末に再インポートしても増えない
     @MainActor
     @Test func reimportingOwnExportAddsNothing() async throws {
