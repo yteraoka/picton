@@ -88,6 +88,20 @@ struct CardExportImportServiceTests {
         #expect(isInvalidZip(zip))
     }
 
+    /// #39: 圧縮されたエントリ（deflate = 8）やデータディスクリプタ付きのエントリは、
+    /// 壊れたファイルとは区別して「非対応の形式」として扱う
+    @Test(arguments: [
+        (offset: 8, bytes: [UInt8]([8, 0])),     // compression method: deflate
+        (offset: 6, bytes: [UInt8]([0x08, 0])),  // flags: bit 3（データディスクリプタ）
+    ])
+    func compressedOrStreamedEntryIsUnsupported(offset: Int, bytes: [UInt8]) {
+        var zip = sampleZip()
+        zip.replaceSubrange(offset..<offset + bytes.count, with: bytes)
+        #expect(throws: Service.ExportImportError.unsupportedZipFormat) {
+            try Service.parseZip(data: zip)
+        }
+    }
+
     @Test func corruptedDataFailsCRC() {
         var zip = sampleZip()
         zip[40] ^= 0xFF // cards.json の本文
