@@ -178,8 +178,7 @@ Picton/
 │   ├── HiddenCardsListView.swift   # 非表示カードの一覧・再表示
 │   └── PlaybackButtonView.swift    # 再生ボタン
 ├── ViewModels/
-│   ├── SentenceViewModel.swift     # 文の組み立てロジック
-│   └── CardLibraryViewModel.swift  # カード取得・フィルタ
+│   └── SentenceViewModel.swift     # 文の組み立てロジック
 ├── Services/
 │   ├── TTSService.swift            # AVSpeechSynthesizer ラッパー
 │   ├── ImageStorageService.swift   # カスタム画像の保存・読込・削除
