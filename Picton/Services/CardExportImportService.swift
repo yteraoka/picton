@@ -16,7 +16,19 @@ enum CardExportImportService {
         /// インポートしたカードは元のカードの ID を引き継ぐ（`PictureCard.originID ?? id`）。
         /// この項目がない古い ZIP も読めるよう Optional にしている
         var sourceID: UUID? = nil
+        /// 並び順（version 2 から）。インポート時は相対的な順序を保って既存カードの後ろに置く
+        var sortOrder: Int? = nil
+        /// 非表示かどうか（version 2 から）。インポート時に復元する
+        var isHidden: Bool? = nil
     }
+
+    /// 書き出す形式のバージョン
+    ///
+    /// - 1: 表示名・読み・カテゴリ・画像
+    /// - 2: 並び順（sortOrder）と非表示（isHidden）を追加 (#41)
+    static let currentExportVersion = 2
+    /// 読み込める形式のバージョン
+    static let supportedExportVersions: ClosedRange<Int> = 1...currentExportVersion
 
     struct ExportPayload: Codable {
         let version: Int
@@ -97,11 +109,13 @@ enum CardExportImportService {
                 category: card.category,
                 hasImage: hasImage,
                 imageFileName: hasImage ? "\(card.id.uuidString).jpg" : nil,
-                sourceID: card.originID ?? card.id
+                sourceID: card.originID ?? card.id,
+                sortOrder: card.sortOrder,
+                isHidden: card.isHidden
             )
         }
 
-        let payload = ExportPayload(version: 1, exportedAt: Date(), cards: exportCards)
+        let payload = ExportPayload(version: currentExportVersion, exportedAt: Date(), cards: exportCards)
         let encoder = JSONEncoder()
         encoder.dateEncodingStrategy = .iso8601
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
@@ -199,6 +213,7 @@ enum CardExportImportService {
         let category: String
         /// 元になったカードの ID（`PictureCard.originID` に保存する）
         let originID: UUID?
+        let isHidden: Bool
     }
 
     struct PreparedImport: Sendable {
@@ -309,11 +324,16 @@ enum CardExportImportService {
         decoder.dateDecodingStrategy = .iso8601
         let payload = try decoder.decode(ExportPayload.self, from: jsonEntry.data)
 
-        guard payload.version == 1 else {
+        guard supportedExportVersions.contains(payload.version) else {
             throw ExportImportError.invalidManifest
         }
 
+        // 書き出したときの並び順で取り込む（version 1 は sortOrder がないので ZIP 内の順）。
+        // 追加時は既存カードの後ろに順に番号を振るので、相対的な順序が保たれる (#41)
         let exportCards = try validatedCards(payload.cards)
+            .enumerated()
+            .sorted { ($0.element.sortOrder ?? Int.max, $0.offset) < ($1.element.sortOrder ?? Int.max, $1.offset) }
+            .map(\.element)
 
         // Build image lookup: original filename -> data
         var imageLookup: [String: Data] = [:]
@@ -366,7 +386,8 @@ enum CardExportImportService {
                     displayName: exportCard.displayName,
                     kanaText: exportCard.kanaText,
                     category: exportCard.category,
-                    originID: originID
+                    originID: originID,
+                    isHidden: exportCard.isHidden ?? false
                 ))
                 onProgress(index + 1, exportCards.count)
             }
@@ -402,7 +423,8 @@ enum CardExportImportService {
                     isPreset: false,
                     originID: prepared.originID,
                     sortOrder: nextSortOrder,
-                    createdAt: Date()
+                    createdAt: Date(),
+                    isHidden: prepared.isHidden
                 ))
                 nextSortOrder += 1
             }
@@ -461,7 +483,9 @@ enum CardExportImportService {
                 category: category,
                 hasImage: card.hasImage,
                 imageFileName: card.imageFileName,
-                sourceID: card.sourceID
+                sourceID: card.sourceID,
+                sortOrder: card.sortOrder,
+                isHidden: card.isHidden
             )
         }
     }
