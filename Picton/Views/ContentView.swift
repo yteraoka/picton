@@ -267,32 +267,41 @@ struct ContentView: View {
     }
 
     private var categoryFilter: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(Constants.allCategories, id: \.self) { category in
-                    Button {
-                        switchCategory(to: category)
-                    } label: {
-                        Text(category)
-                            .font(.subheadline)
-                            .fontWeight(.medium)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(
-                                Capsule()
-                                    .fill(selectedCategory == category
-                                          ? Constants.Colors.categorySelected
-                                          : Constants.Colors.categoryDefault)
-                            )
-                            .foregroundStyle(selectedCategory == category ? .white : .primary)
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(Constants.allCategories, id: \.self) { category in
+                        Button {
+                            switchCategory(to: category)
+                        } label: {
+                            Text(category)
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .padding(.horizontal, 14)
+                                .padding(.vertical, 8)
+                                .background(
+                                    Capsule()
+                                        .fill(selectedCategory == category
+                                              ? Constants.Colors.categorySelected
+                                              : Constants.Colors.categoryDefault)
+                                )
+                                .foregroundStyle(selectedCategory == category ? .white : .primary)
+                        }
+                        .buttonStyle(.plain)
+                        .id(category)
+                        .accessibilityLabel("\(category)カテゴリ")
+                        .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("\(category)カテゴリ")
-                    .accessibilityAddTraits(selectedCategory == category ? .isSelected : [])
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+            }
+            // タブは画面幅に収まらないため、スワイプで切り替えたときも選んだタブが見えるようにする
+            .onChange(of: selectedCategory) { _, category in
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    proxy.scrollTo(category, anchor: .center)
                 }
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
         }
     }
 }

@@ -102,6 +102,84 @@ struct SentenceViewModelTests {
         #expect(vm.fullKanaText() == "")
     }
 
+    // MARK: - 元に戻す
+
+    @Test func undoRestoresRemovedCard() {
+        let vm = makeViewModel(["A", "B", "C"])
+        let ids = vm.items.map(\.id)
+        vm.remove(id: ids[1])
+        vm.undo()
+        #expect(names(vm) == ["A", "B", "C"])
+        #expect(vm.items.map(\.id) == ids)
+    }
+
+    @Test func undoRestoresClearedSentence() {
+        let vm = makeViewModel(["A", "B"])
+        vm.clear()
+        #expect(vm.canUndo)
+        vm.undo()
+        #expect(names(vm) == ["A", "B"])
+    }
+
+    @Test func undoRemovesAppendedCard() {
+        let vm = makeViewModel(["A"])
+        vm.append(snapshot("B"))
+        vm.undo()
+        #expect(names(vm) == ["A"])
+        vm.undo()
+        #expect(vm.isEmpty)
+        #expect(!vm.canUndo)
+    }
+
+    /// ドラッグ中に何度移動しても、並べ替え 1 回分としてまとめて戻る
+    @Test func undoRevertsWholeReorder() {
+        let vm = makeViewModel(["A", "B", "C"])
+        vm.beginReorder()
+        vm.move(from: 0, to: 2)
+        vm.move(from: 1, to: 3)
+        #expect(names(vm) == ["B", "C", "A"])
+        vm.undo()
+        #expect(names(vm) == ["A", "B", "C"])
+    }
+
+    /// 中身の変わらなかった並べ替えは読み飛ばし、その前の操作を戻す
+    @Test func undoSkipsNoOpReorder() {
+        let vm = makeViewModel(["A", "B"])
+        vm.beginReorder()
+        vm.undo()
+        #expect(names(vm) == ["A"])
+    }
+
+    /// 何も変わらない操作は履歴に残さない
+    @Test func noOpOperationsAreNotRecorded() {
+        let vm = SentenceViewModel()
+        vm.clear()
+        vm.remove(id: UUID())
+        #expect(vm.history.isEmpty)
+        #expect(!vm.canUndo)
+    }
+
+    @Test func historyIsLimited() {
+        let vm = SentenceViewModel()
+        for i in 0..<(SentenceViewModel.historyLimit + 10) {
+            vm.append(snapshot("\(i)"))
+        }
+        #expect(vm.history.count == SentenceViewModel.historyLimit)
+    }
+
+    /// DB から削除したカードは、元に戻しても文エリアに戻ってこない
+    @Test func undoDoesNotRestoreDeletedCards() {
+        let a = snapshot("A"), b = snapshot("B")
+        let vm = SentenceViewModel()
+        vm.append(a)
+        vm.append(b)
+        vm.clear()
+
+        vm.sync(with: [b])
+        vm.undo()
+        #expect(names(vm) == ["B"])
+    }
+
     // MARK: - sync(with:) (#36)
 
     /// DB から削除されたカードは文エリアからも取り除かれる
