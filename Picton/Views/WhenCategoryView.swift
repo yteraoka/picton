@@ -146,11 +146,17 @@ struct WhenCategoryView: View {
         .accessibilityHint("タップして文に追加")
     }
 
-    private func dateSubtitle(for date: Date) -> String {
+    /// DateFormatter は生成コストが高いので、描画のたびに作らずキャッシュする (#43)。
+    /// Sendable ではないため、View と同じメインアクターに閉じ込める
+    @MainActor private static let subtitleFormatter: DateFormatter = {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ja_JP")
         formatter.dateFormat = "M月d日(E)"
-        return formatter.string(from: date)
+        return formatter
+    }()
+
+    private func dateSubtitle(for date: Date) -> String {
+        Self.subtitleFormatter.string(from: date)
     }
 
     /// 「いつ」カテゴリのカードは DB に保存しない一時的なカードなので cardID は nil
@@ -310,11 +316,16 @@ private struct CalendarGridView: View {
         }
     }
 
+    /// 描画のたびに作らずキャッシュする (#43)
+    @MainActor private static let monthTitleFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ja_JP")
+        formatter.dateFormat = "yyyy年M月"
+        return formatter
+    }()
+
     private func monthTitle(for date: Date) -> String {
-        let f = DateFormatter()
-        f.locale = Locale(identifier: "ja_JP")
-        f.dateFormat = "yyyy年M月"
-        return f.string(from: date)
+        Self.monthTitleFormatter.string(from: date)
     }
 
     private func changeMonth(by value: Int) {
