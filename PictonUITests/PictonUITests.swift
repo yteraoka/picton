@@ -73,6 +73,30 @@ final class PictonUITests: XCTestCase {
         XCTAssertFalse(app.buttons["電車を削除"].waitForExistence(timeout: 1))
     }
 
+    /// #45: 文エリアのカードもドラッグで並べ替えられる
+    func testReorderSentenceByDrag() {
+        selectCategory("手段", expecting: "くるま")
+        card("くるま").tap()
+        card("電車").tap()
+
+        let car = app.buttons["くるまを削除"]
+        let train = app.buttons["電車を削除"]
+        XCTAssertTrue(train.waitForExistence(timeout: 3))
+        XCTAssertLessThan(car.frame.minX, train.frame.minX, "追加した順に くるま → 電車")
+
+        let start = car.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        let end = train.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5))
+        start.press(forDuration: 1.5, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 1.0)
+
+        let swapped = NSPredicate { _, _ in
+            let car = self.app.buttons["くるまを削除"]
+            let train = self.app.buttons["電車を削除"]
+            return car.exists && train.exists && train.frame.minX < car.frame.minX
+        }
+        let expectation = XCTNSPredicateExpectation(predicate: swapped, object: nil)
+        XCTAssertEqual(XCTWaiter.wait(for: [expectation], timeout: 5), .completed, "電車 → くるま の順に並べ替わっていない")
+    }
+
     /// PR #32: 編集モードでドラッグするとリアルタイムに並べ替わる
     func testReorderByDragInEditMode() {
         selectCategory("手段", expecting: "くるま")
