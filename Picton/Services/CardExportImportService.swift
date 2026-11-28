@@ -490,6 +490,21 @@ enum CardExportImportService {
         }
     }
 
+    /// カードの表示名と読みを、インポートと同じ規則で検証する
+    ///
+    /// カードの追加・編集画面でも使い、空白だけの名前や長すぎる名前のカードを作らないようにする (#65)。
+    /// 文字列は `sanitizedText(_:)` で整えてから検証するので、保存するときも整えた値を使うこと。
+    /// - Returns: 問題があれば最初の 1 つ。なければ nil
+    static func cardTextProblem(displayName: String, kanaText: String) -> CardProblem? {
+        let displayName = sanitizedText(displayName)
+        let kanaText = sanitizedText(kanaText)
+        if displayName.isEmpty { return .emptyDisplayName }
+        if displayName.count > maxDisplayNameLength { return .displayNameTooLong }
+        if kanaText.isEmpty { return .emptyKanaText }
+        if kanaText.count > maxKanaTextLength { return .kanaTextTooLong }
+        return nil
+    }
+
     /// 制御文字・改行・双方向テキストの制御文字を取り除き、前後の空白をトリムする
     ///
     /// 絵文字の結合に使うゼロ幅接合子（U+200D）などは残す。

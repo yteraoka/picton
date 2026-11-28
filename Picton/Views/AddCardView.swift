@@ -17,6 +17,11 @@ struct AddCardView: View {
 
     let categories = Constants.allCategories
 
+    /// 表示名・読みの問題。空白だけ・長すぎる場合は保存できない (#65)
+    private var textProblem: CardExportImportService.CardProblem? {
+        CardExportImportService.cardTextProblem(displayName: displayName, kanaText: kanaText)
+    }
+
     /// - Parameter initialCategory: カテゴリの初期値。一覧にないものなら「場所」
     init(initialCategory: String = "場所") {
         _selectedCategory = State(
@@ -58,13 +63,21 @@ struct AddCardView: View {
                     }
                 }
 
-                Section("カード情報") {
+                Section {
                     TextField("表示名 (例: 公園)", text: $displayName)
                     TextField("読みがな (例: こうえん)", text: $kanaText)
                     Picker("カテゴリ", selection: $selectedCategory) {
                         ForEach(categories, id: \.self) { category in
                             Text(category).tag(category)
                         }
+                    }
+                } header: {
+                    Text("カード情報")
+                } footer: {
+                    // 空のときは保存ボタンを押せないだけにし、長すぎるときだけ理由を出す
+                    if let problem = textProblem, problem == .displayNameTooLong || problem == .kanaTextTooLong {
+                        Text(problem.message)
+                            .foregroundStyle(.red)
                     }
                 }
             }
@@ -76,7 +89,7 @@ struct AddCardView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") { saveCard() }
-                        .disabled(displayName.isEmpty || kanaText.isEmpty)
+                        .disabled(textProblem != nil)
                 }
             }
             // 選び直すと前の読み込みは自動でキャンセルされ、古い画像で上書きしない (#60)
@@ -138,8 +151,9 @@ struct AddCardView: View {
 
         let card = PictureCard(
             id: cardID,
-            displayName: displayName,
-            kanaText: kanaText,
+            // 前後の空白や制御文字を除いた値で保存する (#65)
+            displayName: CardExportImportService.sanitizedText(displayName),
+            kanaText: CardExportImportService.sanitizedText(kanaText),
             category: selectedCategory,
             isPreset: false,
             sortOrder: nextSortOrder

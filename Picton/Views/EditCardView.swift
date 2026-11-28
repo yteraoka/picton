@@ -24,6 +24,11 @@ struct EditCardView: View {
 
     let categories = Constants.allCategories
 
+    /// 表示名・読みの問題。空白だけ・長すぎる場合は保存できない (#65)
+    private var textProblem: CardExportImportService.CardProblem? {
+        CardExportImportService.cardTextProblem(displayName: displayName, kanaText: kanaText)
+    }
+
     init(card: PictureCard) {
         self.card = card
         _displayName = State(initialValue: card.displayName)
@@ -90,13 +95,21 @@ struct EditCardView: View {
                     }
                 }
 
-                Section("カード情報") {
+                Section {
                     TextField("表示名", text: $displayName)
                     TextField("読みがな", text: $kanaText)
                     Picker("カテゴリ", selection: $selectedCategory) {
                         ForEach(categories, id: \.self) { category in
                             Text(category).tag(category)
                         }
+                    }
+                } header: {
+                    Text("カード情報")
+                } footer: {
+                    // 空のときは保存ボタンを押せないだけにし、長すぎるときだけ理由を出す
+                    if let problem = textProblem, problem == .displayNameTooLong || problem == .kanaTextTooLong {
+                        Text(problem.message)
+                            .foregroundStyle(.red)
                     }
                 }
 
@@ -120,7 +133,7 @@ struct EditCardView: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("保存") { saveChanges() }
-                        .disabled(displayName.isEmpty || kanaText.isEmpty)
+                        .disabled(textProblem != nil)
                 }
             }
             // 選び直すと前の読み込みは自動でキャンセルされ、古い画像で上書きしない (#60)
@@ -184,8 +197,9 @@ struct EditCardView: View {
         // 画像の削除は、カードの保存に成功してからファイルを消す（失敗したら画像を残す）(#46)
         let deletesImage = !card.isPreset && !replacesImage && removesImage && existingImage != nil
 
-        card.displayName = displayName
-        card.kanaText = kanaText
+        // 前後の空白や制御文字を除いた値で保存する (#65)
+        card.displayName = CardExportImportService.sanitizedText(displayName)
+        card.kanaText = CardExportImportService.sanitizedText(kanaText)
         card.category = selectedCategory
         card.isHidden = isHidden
         if replacesImage || deletesImage {

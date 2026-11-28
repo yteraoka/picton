@@ -281,6 +281,20 @@ struct CardExportImportServiceTests {
         #expect(Service.sanitizedText("おかあ さん") == "おかあ さん")
     }
 
+    /// #65: 追加・編集画面もインポートと同じ規則で検証する
+    @Test func cardTextProblemUsesImportRules() {
+        #expect(Service.cardTextProblem(displayName: "いぬ", kanaText: "いぬ") == nil)
+        #expect(Service.cardTextProblem(displayName: "  ", kanaText: "いぬ") == .emptyDisplayName)
+        #expect(Service.cardTextProblem(displayName: "いぬ", kanaText: "\n\t") == .emptyKanaText)
+        let longName = String(repeating: "あ", count: Service.maxDisplayNameLength + 1)
+        #expect(Service.cardTextProblem(displayName: longName, kanaText: "いぬ") == .displayNameTooLong)
+        let longKana = String(repeating: "あ", count: Service.maxKanaTextLength + 1)
+        #expect(Service.cardTextProblem(displayName: "いぬ", kanaText: longKana) == .kanaTextTooLong)
+        // 前後の空白は数えない
+        let maxName = "  " + String(repeating: "あ", count: Service.maxDisplayNameLength) + "  "
+        #expect(Service.cardTextProblem(displayName: maxName, kanaText: "いぬ") == nil)
+    }
+
     @Test func validatedCardsSanitizesText() throws {
         let cards = try Service.validatedCards([card(" い\u{0}ぬ\n", kana: "\tいぬ", category: " 生活 ")])
         #expect(cards.map(\.displayName) == ["いぬ"])
