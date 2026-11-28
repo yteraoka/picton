@@ -13,6 +13,7 @@ struct AddCardView: View {
     @State private var selectedImage: UIImage?
     @State private var photosPickerItem: PhotosPickerItem?
     @State private var showCamera = false
+    @State private var errorAlert: ErrorAlert?
 
     let categories = Constants.allCategories
 
@@ -80,30 +81,59 @@ struct AddCardView: View {
             }
             // 選び直すと前の読み込みは自動でキャンセルされ、古い画像で上書きしない (#60)
             .task(id: photosPickerItem) {
-                guard let item = photosPickerItem,
-                      let data = try? await item.loadTransferable(type: Data.self) else { return }
+                guard let item = photosPickerItem else { return }
+                let data: Data?
+                do {
+                    data = try await item.loadTransferable(type: Data.self)
+                } catch {
+                    AppLog.image.error("Failed to load picked photo: \(error)")
+                    data = nil
+                }
                 // フル解像度で展開しないよう、カード用の大きさに縮小デコードする
-                let image = await Task.detached { ImageStorageService.pickedImage(from: data) }.value
-                guard !Task.isCancelled, let image else { return }
+                var image: UIImage?
+                if let data {
+                    image = await Task.detached { ImageStorageService.pickedImage(from: data) }.value
+                }
+                guard !Task.isCancelled else { return }
+                guard let image else {
+                    errorAlert = .photoLoadFailed
+                    return
+                }
                 selectedImage = image
             }
             .fullScreenCover(isPresented: $showCamera) {
                 CameraView(image: $selectedImage)
                     .ignoresSafeArea()
             }
+            .errorAlert($errorAlert)
         }
     }
 
+    /// 画像やカードを保存できなかった場合は、カードを作らずにアラートを出して画面を開いたままにする
+    /// （利用者が撮り直したり、もう一度保存したりできるように）(#38)
     private func saveCard() {
         let cardID = UUID()
-        let descriptor = FetchDescriptor<PictureCard>(
+        var descriptor = FetchDescriptor<PictureCard>(
             sortBy: [SortDescriptor(\PictureCard.sortOrder, order: .reverse)]
         )
-        let existing = (try? modelContext.fetch(descriptor)) ?? []
-        let nextSortOrder = (existing.first?.sortOrder ?? -1) + 1
+        descriptor.fetchLimit = 1
+        let nextSortOrder: Int
+        do {
+            nextSortOrder = (try modelContext.fetch(descriptor).first?.sortOrder ?? -1) + 1
+        } catch {
+            AppLog.data.error("Failed to fetch cards before adding: \(error)")
+            errorAlert = .saveFailed(error)
+            return
+        }
 
         if let image = selectedImage {
-            _ = try? ImageStorageService.save(image: image, id: cardID)
+            do {
+                _ = try ImageStorageService.save(image: image, id: cardID)
+            } catch {
+                AppLog.image.error("Failed to save image for new card: \(error)")
+                errorAlert = .imageSaveFailed(error)
+                return
+            }
         }
 
         let card = PictureCard(
@@ -115,8 +145,69 @@ struct AddCardView: View {
             sortOrder: nextSortOrder
         )
         modelContext.insert(card)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            AppLog.data.error("Failed to save new card: \(error)")
+            modelContext.rollback()
+            ImageStorageService.delete(id: cardID)
+            errorAlert = .saveFailed(error)
+            return
+        }
         dismiss()
+    }
+}
+
+// MARK: - Error alert
+
+/// 追加・編集画面で出すエラーのアラート (#38)
+struct ErrorAlert: Identifiable {
+    let id = UUID()
+    let title: String
+    let message: String
+
+    static func imageSaveFailed(_ error: Error) -> ErrorAlert {
+        ErrorAlert(
+            title: "画像を保存できませんでした",
+            message: "もう一度撮影するか、別の写真を選んでください。\n（\(error.localizedDescription)）"
+        )
+    }
+
+    static func saveFailed(_ error: Error) -> ErrorAlert {
+        ErrorAlert(
+            title: "保存できませんでした",
+            message: "端末の空き容量を確認して、もう一度お試しください。\n（\(error.localizedDescription)）"
+        )
+    }
+
+    static func deleteFailed(_ error: Error) -> ErrorAlert {
+        ErrorAlert(
+            title: "削除できませんでした",
+            message: "もう一度お試しください。\n（\(error.localizedDescription)）"
+        )
+    }
+
+    static let photoLoadFailed = ErrorAlert(
+        title: "写真を読み込めませんでした",
+        message: "別の写真を選んでください。iCloud の写真の場合は、通信できる状態でもう一度お試しください。"
+    )
+}
+
+extension View {
+    /// `alert` が nil でなくなったらアラートを表示し、閉じたら nil に戻す
+    func errorAlert(_ alert: Binding<ErrorAlert?>) -> some View {
+        self.alert(
+            alert.wrappedValue?.title ?? "",
+            isPresented: Binding(
+                get: { alert.wrappedValue != nil },
+                set: { if !$0 { alert.wrappedValue = nil } }
+            ),
+            presenting: alert.wrappedValue
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { alert in
+            Text(alert.message)
+        }
     }
 }
 

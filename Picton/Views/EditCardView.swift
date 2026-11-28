@@ -18,6 +18,7 @@ struct EditCardView: View {
     @State private var showCamera = false
     @State private var showDeleteConfirmation = false
     @State private var isHidden: Bool
+    @State private var errorAlert: ErrorAlert?
 
     let categories = Constants.allCategories
 
@@ -102,11 +103,24 @@ struct EditCardView: View {
             }
             // 選び直すと前の読み込みは自動でキャンセルされ、古い画像で上書きしない (#60)
             .task(id: photosPickerItem) {
-                guard let item = photosPickerItem,
-                      let data = try? await item.loadTransferable(type: Data.self) else { return }
+                guard let item = photosPickerItem else { return }
+                let data: Data?
+                do {
+                    data = try await item.loadTransferable(type: Data.self)
+                } catch {
+                    AppLog.image.error("Failed to load picked photo: \(error)")
+                    data = nil
+                }
                 // フル解像度で展開しないよう、カード用の大きさに縮小デコードする
-                let image = await Task.detached { ImageStorageService.pickedImage(from: data) }.value
-                guard !Task.isCancelled, let image else { return }
+                var image: UIImage?
+                if let data {
+                    image = await Task.detached { ImageStorageService.pickedImage(from: data) }.value
+                }
+                guard !Task.isCancelled else { return }
+                guard let image else {
+                    errorAlert = .photoLoadFailed
+                    return
+                }
                 newImage = image
             }
             .fullScreenCover(isPresented: $showCamera) {
@@ -119,6 +133,7 @@ struct EditCardView: View {
                 let id = card.id
                 existingImage = await Task.detached { ImageStorageService.load(id: id) }.value
             }
+            .errorAlert($errorAlert)
             .alert("カードを削除しますか？", isPresented: $showDeleteConfirmation) {
                 Button("削除", role: .destructive) { deleteCard() }
                 Button("キャンセル", role: .cancel) {}
@@ -128,27 +143,55 @@ struct EditCardView: View {
         }
     }
 
+    /// 保存できなかった場合はアラートを出して画面を開いたままにする (#38)
     private func saveChanges() {
+        // 画像を差し替えたときだけ保存する。保存済みの画像を毎回読み直して
+        // 再圧縮すると、編集のたびに JPEG の画質が劣化するため (#55)。
+        // 画像の保存に失敗したら、カードの内容も変更しない
+        let replacesImage = !card.isPreset && newImage != nil
+        if replacesImage, let image = newImage {
+            do {
+                _ = try ImageStorageService.save(image: image, id: card.id)
+            } catch {
+                AppLog.image.error("Failed to save image for card \(card.id, privacy: .public): \(error)")
+                errorAlert = .imageSaveFailed(error)
+                return
+            }
+        }
+
         card.displayName = displayName
         card.kanaText = kanaText
         card.category = selectedCategory
         card.isHidden = isHidden
-
-        // 画像を差し替えたときだけ保存する。保存済みの画像を毎回読み直して
-        // 再圧縮すると、編集のたびに JPEG の画質が劣化するため (#55)
-        if !card.isPreset, let image = newImage, (try? ImageStorageService.save(image: image, id: card.id)) != nil {
+        if replacesImage {
             // 一覧・文エリアのサムネイルに差し替えを反映させる (#56)
             card.imageVersion += 1
         }
 
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            AppLog.data.error("Failed to save card \(card.id, privacy: .public): \(error)")
+            modelContext.rollback()
+            errorAlert = .saveFailed(error)
+            return
+        }
         dismiss()
     }
 
+    /// 画像はカードの削除を保存できてから消す（失敗したときにカードだけ残って画像が消えないように）
     private func deleteCard() {
-        ImageStorageService.delete(id: card.id)
+        let id = card.id
         modelContext.delete(card)
-        try? modelContext.save()
+        do {
+            try modelContext.save()
+        } catch {
+            AppLog.data.error("Failed to delete card \(id, privacy: .public): \(error)")
+            modelContext.rollback()
+            errorAlert = .deleteFailed(error)
+            return
+        }
+        ImageStorageService.delete(id: id)
         dismiss()
     }
 }

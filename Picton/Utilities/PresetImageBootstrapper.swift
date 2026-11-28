@@ -25,7 +25,13 @@ enum PresetImageBootstrapper {
             predicate: #Predicate { $0.isPreset == true },
             sortBy: [SortDescriptor(\.sortOrder)]
         )
-        guard var presets = try? context.fetch(descriptor) else { return }
+        var presets: [PictureCard]
+        do {
+            presets = try context.fetch(descriptor)
+        } catch {
+            AppLog.data.error("Failed to fetch presets: \(error)")
+            return
+        }
 
         presets = removeLegacyDeletedPresets(presets, context: context)
         presets = assignMissingPresetIDs(presets, context: context)
@@ -33,7 +39,8 @@ enum PresetImageBootstrapper {
         updateSymbols(presets)
         addMissingPresets(existing: presets, context: context)
 
-        try? context.save()
+        // 失敗しても既存のカードはそのまま使えるので、途中までの変更は捨てて次回の起動でやり直す
+        context.saveOrRollback("bootstrap presets")
     }
 
     // MARK: - Steps

@@ -1,4 +1,5 @@
 import Foundation
+import os
 import SwiftUI
 
 enum Constants {
@@ -30,4 +31,17 @@ enum Constants {
     static let isUITesting = ProcessInfo.processInfo.arguments.contains("--uitesting")
 
     static let allCategories = ["いつ", "手段", "場所", "動作", "食べ物", "人", "生活", "気持ち"]
+}
+
+/// アプリ共通のロガー
+///
+/// 失敗を `try?` で黙って捨てず、最低限ここに残す (#38)。
+enum AppLog {
+    static let subsystem = Bundle.main.bundleIdentifier ?? "me.teraoka.Picton"
+    /// SwiftData の読み書き
+    static let data = Logger(subsystem: subsystem, category: "Data")
+    /// カード画像の読み書き
+    static let image = Logger(subsystem: subsystem, category: "Image")
+    /// エクスポート・インポート
+    static let transfer = Logger(subsystem: subsystem, category: "Transfer")
 }

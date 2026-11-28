@@ -212,6 +212,13 @@ struct ImageStorageServiceTests {
         #expect(properties[kCGImagePropertyPixelHeight] as? Int == ImageStorageService.storedPixelSize)
     }
 
+    /// 画像のないカードの削除で画像の削除を呼んでも問題ない (#38)
+    @Test func deletingMissingImageIsHarmless() {
+        let id = UUID()
+        ImageStorageService.delete(id: id)
+        #expect(ImageStorageService.load(id: id) == nil)
+    }
+
     @Test func roundTripThroughSave() throws {
         let id = UUID()
         defer { ImageStorageService.delete(id: id) }
