@@ -1,11 +1,16 @@
 import SwiftUI
 
+/// 文エリアに並べた 1 枚のカード
+///
+/// タップするとそのカードを読み上げる。子どもが確かめようとして押しただけで
+/// 消えてしまわないよう、削除は右上の × ボタンに分けている。
 struct SentenceCardView: View {
     let card: CardSnapshot
+    let onSpeak: () -> Void
     let onRemove: () -> Void
 
     var body: some View {
-        Button(action: onRemove) {
+        Button(action: onSpeak) {
             VStack(spacing: 2) {
                 CardImageView(card: card)
                     .frame(width: 44, height: 44)
@@ -29,7 +34,21 @@ struct SentenceCardView: View {
             )
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("\(card.displayName)を削除")
+        .accessibilityLabel("\(card.displayName)を読み上げる")
+        .overlay(alignment: .topTrailing) {
+            Button(action: onRemove) {
+                Image(systemName: "xmark.circle.fill")
+                    .font(.system(size: 16))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, Color(.systemGray))
+                    // 押しやすいよう、見た目より少し広く反応させる
+                    .frame(width: 28, height: 28, alignment: .topTrailing)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .offset(x: 2, y: -2)
+            .accessibilityLabel("\(card.displayName)を削除")
+        }
     }
 }
 

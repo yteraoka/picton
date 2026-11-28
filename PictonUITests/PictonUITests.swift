@@ -64,13 +64,26 @@ final class PictonUITests: XCTestCase {
         XCTAssertTrue(app.buttons["くるまを削除"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["電車を削除"].exists)
 
-        // 文中のカードをタップすると 1 枚だけ消える
+        // 文中のカード本体をタップしても消えない（読み上げるだけ）
+        app.buttons["くるまを読み上げる"].tap()
+        XCTAssertTrue(app.buttons["くるまを削除"].exists)
+
+        // × ボタンで 1 枚だけ消える
         app.buttons["くるまを削除"].tap()
         XCTAssertFalse(app.buttons["くるまを削除"].waitForExistence(timeout: 1))
         XCTAssertTrue(app.buttons["電車を削除"].exists)
 
+        // 「元に戻す」で消したカードが戻る
+        app.buttons["元に戻す"].tap()
+        XCTAssertTrue(app.buttons["くるまを削除"].waitForExistence(timeout: 3))
+
         app.buttons["すべて消す"].tap()
         XCTAssertFalse(app.buttons["電車を削除"].waitForExistence(timeout: 1))
+
+        // すべて消しても元に戻せる
+        app.buttons["元に戻す"].tap()
+        XCTAssertTrue(app.buttons["電車を削除"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["くるまを削除"].exists)
     }
 
     /// #45: 文エリアのカードもドラッグで並べ替えられる
@@ -79,8 +92,8 @@ final class PictonUITests: XCTestCase {
         card("くるま").tap()
         card("電車").tap()
 
-        let car = app.buttons["くるまを削除"]
-        let train = app.buttons["電車を削除"]
+        let car = app.buttons["くるまを読み上げる"]
+        let train = app.buttons["電車を読み上げる"]
         XCTAssertTrue(train.waitForExistence(timeout: 3))
         XCTAssertLessThan(car.frame.minX, train.frame.minX, "追加した順に くるま → 電車")
 
@@ -89,8 +102,8 @@ final class PictonUITests: XCTestCase {
         start.press(forDuration: 1.5, thenDragTo: end, withVelocity: .slow, thenHoldForDuration: 1.0)
 
         let swapped = NSPredicate { _, _ in
-            let car = self.app.buttons["くるまを削除"]
-            let train = self.app.buttons["電車を削除"]
+            let car = self.app.buttons["くるまを読み上げる"]
+            let train = self.app.buttons["電車を読み上げる"]
             return car.exists && train.exists && train.frame.minX < car.frame.minX
         }
         let expectation = XCTNSPredicateExpectation(predicate: swapped, object: nil)

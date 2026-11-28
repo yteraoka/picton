@@ -27,13 +27,23 @@ struct SentenceAreaView: View {
             .disabled(sentenceVM.isEmpty)
             .opacity(sentenceVM.isEmpty ? 0.4 : 1.0)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(sentenceVM.items) { item in
-                        sentenceCard(for: item)
+            ScrollViewReader { proxy in
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 6) {
+                        ForEach(sentenceVM.items) { item in
+                            sentenceCard(for: item)
+                                .id(item.id)
+                        }
+                    }
+                    .padding(.vertical, 4)
+                }
+                // カードを足したら、末尾（足したカード）が見えるようにスクロールする
+                .onChange(of: sentenceVM.items.last?.id) { _, lastID in
+                    guard let lastID, draggedItemID == nil else { return }
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        proxy.scrollTo(lastID, anchor: .trailing)
                     }
                 }
-                .padding(.vertical, 4)
             }
             // カード以外の場所（余白など）へのドロップでも状態を後始末する
             .onDrop(of: [.text], delegate: SentenceDropCleanupDelegate(
@@ -47,7 +57,23 @@ struct SentenceAreaView: View {
                 isDragActive = false
             }
 
-            if !sentenceVM.isEmpty {
+            // 「元に戻す」と「すべて消す」は常に同じ位置に置き、使えないときは薄くする
+            // （出たり消えたりすると文エリアの幅が変わり、カードの位置がずれるため）
+            VStack(spacing: 4) {
+                Button {
+                    withAnimation(.easeInOut(duration: 0.2)) {
+                        sentenceVM.undo()
+                    }
+                } label: {
+                    Image(systemName: "arrow.uturn.backward.circle")
+                        .font(.title3)
+                        .frame(width: 36, height: 32)
+                        .contentShape(Rectangle())
+                }
+                .disabled(!sentenceVM.canUndo)
+                .opacity(sentenceVM.canUndo ? 1 : 0.3)
+                .accessibilityLabel("元に戻す")
+
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
                         sentenceVM.clear()
@@ -56,7 +82,11 @@ struct SentenceAreaView: View {
                     Image(systemName: "trash")
                         .font(.title3)
                         .foregroundStyle(.red)
+                        .frame(width: 36, height: 32)
+                        .contentShape(Rectangle())
                 }
+                .disabled(sentenceVM.isEmpty)
+                .opacity(sentenceVM.isEmpty ? 0.3 : 1)
                 .accessibilityLabel("すべて消す")
             }
         }
@@ -66,11 +96,15 @@ struct SentenceAreaView: View {
     }
 
     private func sentenceCard(for item: SentenceItem) -> some View {
-        SentenceCardView(card: item.card) {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                sentenceVM.remove(id: item.id)
+        SentenceCardView(
+            card: item.card,
+            onSpeak: { ttsService.speak(item.card.kanaText) },
+            onRemove: {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    sentenceVM.remove(id: item.id)
+                }
             }
-        }
+        )
         // ドラッグが動き出してから元のカードを隠す（リフトプレビューが撮られる前に隠すと真っ白になる）
         .opacity(draggedItemID == item.id && isDragActive ? 0 : 1)
         .contentShape(.dragPreview, RoundedRectangle(cornerRadius: 8))
@@ -79,6 +113,8 @@ struct SentenceAreaView: View {
             dragToken = token
             draggedItemID = item.id
             isDragActive = false
+            // 並べ替え 1 回分を「元に戻す」で戻せるようにする
+            sentenceVM.beginReorder()
             return DragSessionItemProvider(id: item.id) { [dragEnd] in
                 dragEnd.endedToken = token
             }
