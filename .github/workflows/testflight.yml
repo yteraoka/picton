@@ -1,0 +1,114 @@
+name: TestFlight
+
+# `v1.2.3` 形式のタグを push すると、アーカイブして App Store Connect にアップロードする。
+# アップロードされたビルドは処理が終わると TestFlight に表示される。
+#   git tag v1.0.0 && git push origin v1.0.0
+on:
+  push:
+    tags: ["v*"]
+
+# 同じタグのアップロードが重複しないようにする（途中で止めるとアップロードが中途半端になるのでキャンセルしない）
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  upload:
+    name: Archive & Upload to TestFlight
+    runs-on: macos-26
+    timeout-minutes: 60
+    env:
+      API_KEY_ID: ${{ secrets.APP_STORE_CONNECT_API_KEY_ID }}
+      API_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_API_ISSUER_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      # タグ v1.2.3 → MARKETING_VERSION 1.2.3。
+      # ビルド番号はアップロードのたびに増やす必要があるので、このワークフローの実行番号を使う
+      - name: Determine version
+        env:
+          TAG: ${{ github.ref_name }}
+          BUILD_NUMBER: ${{ github.run_number }}
+        run: |
+          if ! [[ "$TAG" =~ ^v([0-9]+\.[0-9]+(\.[0-9]+)?)$ ]]; then
+            echo "::error::タグは v1.2.3 の形式にしてください: $TAG"
+            exit 1
+          fi
+          echo "MARKETING_VERSION=${BASH_REMATCH[1]}" >> "$GITHUB_ENV"
+          echo "BUILD_NUMBER=$BUILD_NUMBER" >> "$GITHUB_ENV"
+          echo "version: ${BASH_REMATCH[1]} ($BUILD_NUMBER)"
+
+      - name: Write App Store Connect API key
+        env:
+          API_KEY_P8: ${{ secrets.APP_STORE_CONNECT_API_KEY_P8 }}
+        run: |
+          if [ -z "$API_KEY_ID" ] || [ -z "$API_ISSUER_ID" ] || [ -z "$API_KEY_P8" ]; then
+            echo "::error::APP_STORE_CONNECT_API_KEY_ID / APP_STORE_CONNECT_API_ISSUER_ID / APP_STORE_CONNECT_API_KEY_P8 を Secrets に設定してください"
+            exit 1
+          fi
+          printf '%s\n' "$API_KEY_P8" > "$RUNNER_TEMP/AuthKey.p8"
+          chmod 600 "$RUNNER_TEMP/AuthKey.p8"
+
+      # 証明書とプロビジョニングプロファイルは API キーを使った自動署名（クラウド署名）で用意する
+      - name: Archive
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project Picton.xcodeproj -scheme Picton \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/Picton.xcarchive" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID" \
+            MARKETING_VERSION="$MARKETING_VERSION" \
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER"
+
+      # destination=upload にすると、エクスポートと同時に App Store Connect へアップロードされる
+      - name: Export & Upload
+        run: |
+          set -o pipefail
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store-connect</string>
+            <key>destination</key>
+            <string>upload</string>
+            <key>teamID</key>
+            <string>H6KG946X5L</string>
+            <key>signingStyle</key>
+            <string>automatic</string>
+            <key>uploadSymbols</key>
+            <true/>
+            <key>manageAppVersionAndBuildNumber</key>
+            <false/>
+          </dict>
+          </plist>
+          PLIST
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/Picton.xcarchive" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/AuthKey.p8" \
+            -authenticationKeyID "$API_KEY_ID" \
+            -authenticationKeyIssuerID "$API_ISSUER_ID"
+
+      - name: Summary
+        run: |
+          echo "### ${MARKETING_VERSION} (${BUILD_NUMBER}) を App Store Connect にアップロードしました" >> "$GITHUB_STEP_SUMMARY"
+          echo "処理が終わると TestFlight に表示されます。" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Remove API key
+        if: always()
+        run: rm -f "$RUNNER_TEMP/AuthKey.p8"
